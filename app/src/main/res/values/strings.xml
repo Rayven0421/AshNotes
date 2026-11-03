@@ -4,10 +4,7 @@
     <string name="nav_notes">Notes</string>
     <string name="nav_budget">Budget</string>
     <string name="nav_settings">Settings</string>
-    <string name="home_screen_title">Home</string>
-    <string name="home_screen_subtitle">Where things stand</string>
     <string name="notes_screen_title">Notes</string>
-    <string name="notes_screen_placeholder">Your notes will appear here</string>
     <string name="notes_search_hint">Search notes</string>
     <string name="notes_empty_message">No notes yet. Start one.</string>
     <string name="notes_new_note">New note</string>
@@ -15,7 +12,6 @@
     <string name="notes_other_header">Notes</string>
     <string name="notes_sort_filter">Sort &amp; filter</string>
     <string name="budget_screen_title">Budget</string>
-    <string name="budget_screen_placeholder">Budget overview and expenses</string>
     <string name="budget_empty_message">No budget yet.</string>
     <string name="budget_empty_action">Create budget</string>
     <string name="budget_remaining_label">Remaining balance</string>
@@ -27,7 +23,6 @@
     <string name="budget_transactions_section">Recent transactions</string>
     <string name="budget_action_add_expense">Add expense</string>
     <string name="settings_screen_title">Settings</string>
-    <string name="settings_screen_placeholder">App preferences and backup</string>
 
     <string name="settings_appearance_title">Appearance</string>
     <string name="settings_appearance_desc">Dark theme active</string>
@@ -45,7 +40,6 @@
     <string name="settings_about_desc">AshNotes v1.0.0 • Offline-first notes &amp; budget tracker</string>
     <string name="settings_delete_data_title">Delete local data</string>
     <string name="settings_delete_data_desc">Not available yet</string>
-    <string name="settings_status_coming_soon">Coming later</string>
 
     <!-- Home screen strings -->
     <string name="home_greeting_morning">Good morning</string>

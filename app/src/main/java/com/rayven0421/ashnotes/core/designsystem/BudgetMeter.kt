@@ -14,11 +14,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
 
 /**
  * Reusable Budget Meter composable per DESIGN.md Section 5.
- * - 6dp-tall track in `ash.line`, fill in `ash.ember` (or `ash.over` if over budget).
+ * - Track in `ash.line`, fill in `ash.ember` (or `ash.over` if over budget).
  * - Pace tick: small vertical mark showing progress through the budget period.
  */
 @Composable
@@ -42,6 +41,8 @@ fun BudgetMeter(
     val trackColor = AshLine
     val fillColor = if (isOverBudget) AshOver else AshEmber
     val paceColor = AshTextMuted
+    val meterHeight = AshNotesTheme.spacing.small
+    val tickStrokeWidth = AshNotesTheme.spacing.hairline * 2
 
     val defaultDescription = if (totalMinor > 0) {
         val percent = (rawFraction * 100).toInt()
@@ -53,12 +54,12 @@ fun BudgetMeter(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(8.dp)
+            .height(meterHeight)
             .semantics {
                 this.contentDescription = contentDescription ?: defaultDescription
             }
     ) {
-        Canvas(modifier = Modifier.fillMaxWidth().height(8.dp)) {
+        Canvas(modifier = Modifier.fillMaxWidth().height(meterHeight)) {
             val width = size.width
             val height = size.height
             val cornerRadius = CornerRadius(height / 2f, height / 2f)
@@ -88,9 +89,10 @@ fun BudgetMeter(
                     color = paceColor,
                     start = Offset(tickX, 0f),
                     end = Offset(tickX, height),
-                    strokeWidth = 2.dp.toPx()
+                    strokeWidth = tickStrokeWidth.toPx()
                 )
             }
         }
     }
 }
+
