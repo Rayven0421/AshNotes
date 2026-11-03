@@ -9,10 +9,6 @@ import kotlinx.coroutines.flow.asStateFlow
 class SettingsViewModel : ViewModel() {
     private val _uiState = MutableStateFlow<UiState<SettingsContent>>(UiState.Success(SettingsContent()))
     val uiState: StateFlow<UiState<SettingsContent>> = _uiState.asStateFlow()
-
-    fun deleteLocalData() {
-        // Future data deletion in Phase 2
-    }
 }
 
 class SettingsContent

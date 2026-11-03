@@ -30,22 +30,22 @@
     <string name="settings_screen_placeholder">App preferences and backup</string>
 
     <string name="settings_appearance_title">Appearance</string>
-    <string name="settings_appearance_desc">Dark theme active (Ash theme)</string>
+    <string name="settings_appearance_desc">Dark theme active</string>
     <string name="settings_account_title">Account</string>
-    <string name="settings_account_desc">Offline mode • Cloud account coming in Phase 6</string>
+    <string name="settings_account_desc">Offline mode (Cloud sign-in coming later)</string>
     <string name="settings_workspaces_title">Workspaces</string>
-    <string name="settings_workspaces_desc">Local workspace • Multi-workspace coming in Phase 2</string>
+    <string name="settings_workspaces_desc">Default local workspace (Multiple workspaces coming later)</string>
     <string name="settings_sync_title">Sync</string>
-    <string name="settings_sync_desc">Local only • Cloud sync coming in Phase 6</string>
+    <string name="settings_sync_desc">Local storage only (Cloud sync coming later)</string>
     <string name="settings_backup_title">Backup &amp; restore</string>
-    <string name="settings_backup_desc">Export and import local data • Coming in Phase 5</string>
+    <string name="settings_backup_desc">Local JSON export and import (Coming later)</string>
     <string name="settings_security_title">Security</string>
-    <string name="settings_security_desc">Local device protection • Encryption coming later</string>
+    <string name="settings_security_desc">Device protection (Passcode lock coming later)</string>
     <string name="settings_about_title">About</string>
-    <string name="settings_about_desc">AshNotes v1.0.0 • Offline-first notes &amp; budget</string>
+    <string name="settings_about_desc">AshNotes v1.0.0 • Offline-first notes &amp; budget tracker</string>
     <string name="settings_delete_data_title">Delete local data</string>
-    <string name="settings_delete_data_desc">Permanently erase all local notes and budget data</string>
-    <string name="settings_badge_coming_soon">Coming later</string>
+    <string name="settings_delete_data_desc">Not available yet</string>
+    <string name="settings_status_coming_soon">Coming later</string>
 
     <!-- Home screen strings -->
     <string name="home_greeting_morning">Good morning</string>

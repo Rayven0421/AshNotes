@@ -155,12 +155,7 @@ fun AshNotesNavHost(
                 )
             }
             composable<Screen.Settings> {
-                val viewModel: com.rayven0421.ashnotes.feature.settings.SettingsViewModel = viewModel()
-                SettingsScreen(
-                    onDeleteDataClick = {
-                        viewModel.deleteLocalData()
-                    }
-                )
+                SettingsScreen()
             }
         }
     }
