@@ -1,42 +1,188 @@
 package com.rayven0421.ashnotes.feature.settings
 
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import com.rayven0421.ashnotes.R
 import com.rayven0421.ashnotes.core.designsystem.AshNotesTheme
+import com.rayven0421.ashnotes.core.designsystem.ScreenHeader
 
 @Composable
 fun SettingsScreen(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onDeleteDataClick: () -> Unit = {}
 ) {
-    Box(
+    val scrollState = rememberScrollState()
+
+    Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(AshNotesTheme.spacing.large),
-        contentAlignment = Alignment.Center
+            .verticalScroll(scrollState)
+            .padding(horizontal = AshNotesTheme.spacing.screenHorizontal),
+        verticalArrangement = Arrangement.spacedBy(AshNotesTheme.spacing.large)
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        ScreenHeader(title = stringResource(R.string.settings_screen_title))
+
+            // Grouped plain setting rows
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(0.dp)
+            ) {
+                // 1. Appearance (Active)
+                SettingRow(
+                    title = stringResource(R.string.settings_appearance_title),
+                    description = stringResource(R.string.settings_appearance_desc),
+                    isAvailable = true
+                )
+                HorizontalDivider(color = AshNotesTheme.colors.line, thickness = 1.dp)
+
+                // 2. Account (Not yet implemented - Coming in Phase 6)
+                SettingRow(
+                    title = stringResource(R.string.settings_account_title),
+                    description = stringResource(R.string.settings_account_desc),
+                    isAvailable = false,
+                    badgeText = stringResource(R.string.settings_badge_coming_soon)
+                )
+                HorizontalDivider(color = AshNotesTheme.colors.line, thickness = 1.dp)
+
+                // 3. Workspaces (Not yet implemented - Coming in Phase 2)
+                SettingRow(
+                    title = stringResource(R.string.settings_workspaces_title),
+                    description = stringResource(R.string.settings_workspaces_desc),
+                    isAvailable = false,
+                    badgeText = stringResource(R.string.settings_badge_coming_soon)
+                )
+                HorizontalDivider(color = AshNotesTheme.colors.line, thickness = 1.dp)
+
+                // 4. Sync (Not yet implemented - Coming in Phase 6)
+                SettingRow(
+                    title = stringResource(R.string.settings_sync_title),
+                    description = stringResource(R.string.settings_sync_desc),
+                    isAvailable = false,
+                    badgeText = stringResource(R.string.settings_badge_coming_soon)
+                )
+                HorizontalDivider(color = AshNotesTheme.colors.line, thickness = 1.dp)
+
+                // 5. Backup & restore (Not yet implemented - Coming in Phase 5)
+                SettingRow(
+                    title = stringResource(R.string.settings_backup_title),
+                    description = stringResource(R.string.settings_backup_desc),
+                    isAvailable = false,
+                    badgeText = stringResource(R.string.settings_badge_coming_soon)
+                )
+                HorizontalDivider(color = AshNotesTheme.colors.line, thickness = 1.dp)
+
+                // 6. Security (Not yet implemented - Coming later)
+                SettingRow(
+                    title = stringResource(R.string.settings_security_title),
+                    description = stringResource(R.string.settings_security_desc),
+                    isAvailable = false,
+                    badgeText = stringResource(R.string.settings_badge_coming_soon)
+                )
+                HorizontalDivider(color = AshNotesTheme.colors.line, thickness = 1.dp)
+
+                // 7. About (Active / Informational)
+                SettingRow(
+                    title = stringResource(R.string.settings_about_title),
+                    description = stringResource(R.string.settings_about_desc),
+                    isAvailable = true
+                )
+            }
+
+            Spacer(modifier = Modifier.height(AshNotesTheme.spacing.large))
+
+            // Separated Destructive Action Section (using ash.over)
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(0.dp)
+            ) {
+                SettingRow(
+                    title = stringResource(R.string.settings_delete_data_title),
+                    description = stringResource(R.string.settings_delete_data_desc),
+                    isAvailable = true,
+                    isDestructive = true,
+                    onClick = onDeleteDataClick
+                )
+            }
+        }
+}
+
+@Composable
+private fun SettingRow(
+    title: String,
+    description: String,
+    isAvailable: Boolean,
+    isDestructive: Boolean = false,
+    badgeText: String? = null,
+    onClick: () -> Unit = {}
+) {
+    val titleColor = when {
+        isDestructive -> AshNotesTheme.colors.over
+        isAvailable -> MaterialTheme.colorScheme.onBackground
+        else -> AshNotesTheme.colors.textMuted
+    }
+
+    val descriptionColor = AshNotesTheme.colors.textMuted
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = isAvailable, onClick = onClick)
+            .padding(vertical = AshNotesTheme.spacing.medium),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(AshNotesTheme.spacing.extraSmall)
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(AshNotesTheme.spacing.small),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = titleColor
+                )
+                if (badgeText != null && !isAvailable) {
+                    Text(
+                        text = "• $badgeText",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = AshNotesTheme.colors.textMuted
+                    )
+                }
+            }
             Text(
-                text = stringResource(R.string.settings_screen_title),
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Spacer(modifier = Modifier.height(AshNotesTheme.spacing.small))
-            Text(
-                text = stringResource(R.string.settings_screen_placeholder),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.secondary
+                text = description,
+                style = MaterialTheme.typography.bodyMedium,
+                color = descriptionColor
             )
         }
+    }
+}
+
+@Preview(name = "Settings - Default", showBackground = true, backgroundColor = 0xFF121116)
+@Composable
+fun SettingsScreenPreview() {
+    AshNotesTheme {
+        SettingsScreen()
     }
 }

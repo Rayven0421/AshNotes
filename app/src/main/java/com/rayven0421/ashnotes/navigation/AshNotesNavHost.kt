@@ -19,6 +19,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -28,6 +30,7 @@ import com.rayven0421.ashnotes.R
 import com.rayven0421.ashnotes.core.designsystem.AshNotesTheme
 import com.rayven0421.ashnotes.feature.budget.BudgetScreen
 import com.rayven0421.ashnotes.feature.home.HomeScreen
+import com.rayven0421.ashnotes.feature.home.HomeViewModel
 import com.rayven0421.ashnotes.feature.notes.NotesScreen
 import com.rayven0421.ashnotes.feature.settings.SettingsScreen
 
@@ -107,16 +110,57 @@ fun AshNotesNavHost(
             modifier = Modifier.padding(innerPadding)
         ) {
             composable<Screen.Home> {
-                HomeScreen()
+                val viewModel: HomeViewModel = viewModel()
+                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                HomeScreen(
+                    uiState = uiState,
+                    onNavigateToNotes = {
+                        navController.navigate(Screen.Notes) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    onNavigateToBudget = {
+                        navController.navigate(Screen.Budget) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                )
             }
             composable<Screen.Notes> {
-                NotesScreen()
+                val viewModel: com.rayven0421.ashnotes.feature.notes.NotesViewModel = viewModel()
+                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                NotesScreen(
+                    uiState = uiState,
+                    onSearchQueryChanged = { query ->
+                        viewModel.updateSearchQuery(query)
+                    }
+                )
             }
             composable<Screen.Budget> {
-                BudgetScreen()
+                val viewModel: com.rayven0421.ashnotes.feature.budget.BudgetViewModel = viewModel()
+                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                BudgetScreen(
+                    uiState = uiState,
+                    onCreateBudgetClick = {
+                        viewModel.createBudget()
+                    }
+                )
             }
             composable<Screen.Settings> {
-                SettingsScreen()
+                val viewModel: com.rayven0421.ashnotes.feature.settings.SettingsViewModel = viewModel()
+                SettingsScreen(
+                    onDeleteDataClick = {
+                        viewModel.deleteLocalData()
+                    }
+                )
             }
         }
     }
