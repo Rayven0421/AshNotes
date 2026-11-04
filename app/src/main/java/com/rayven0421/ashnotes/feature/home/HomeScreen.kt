@@ -1,6 +1,5 @@
 package com.rayven0421.ashnotes.feature.home
 
-import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -17,6 +16,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -25,16 +28,19 @@ import com.rayven0421.ashnotes.core.common.UiState
 import com.rayven0421.ashnotes.core.designsystem.AshNotesTheme
 import com.rayven0421.ashnotes.core.designsystem.BudgetMeter
 import com.rayven0421.ashnotes.core.designsystem.ScreenHeader
+import com.rayven0421.ashnotes.core.designsystem.dialog.AshTextInputDialog
+import java.util.Calendar
 
 @Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,
     uiState: UiState<HomeContent> = UiState.Empty,
-    onNavigateToNotes: () -> Unit = {},
     onNavigateToBudget: () -> Unit = {},
-    onNoteClick: (String) -> Unit = {}
+    onNoteClick: (String) -> Unit = {},
+    onNewNoteClick: (String) -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
+    var showNewNoteDialog by rememberSaveable { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -43,11 +49,12 @@ fun HomeScreen(
             .padding(horizontal = AshNotesTheme.spacing.screenHorizontal),
         verticalArrangement = Arrangement.spacedBy(AshNotesTheme.spacing.large)
     ) {
-        val greeting = when (uiState) {
-            is UiState.Success -> uiState.data.greeting
-            else -> stringResource(getGreetingByTimeOfDayResId())
+        val greetingResId = if (uiState is UiState.Success) {
+            uiState.data.greetingResId
+        } else {
+            getGreetingByTimeOfDayResId()
         }
-        ScreenHeader(title = greeting)
+        ScreenHeader(title = stringResource(greetingResId))
 
         HomeBudgetSection(
             uiState = uiState,
@@ -62,12 +69,12 @@ fun HomeScreen(
         HomeActivitySection(uiState = uiState)
 
         HomeQuickActionsRow(
-            onNavigateToNotes = onNavigateToNotes,
-            onNavigateToBudget = onNavigateToBudget
+            onNavigateToBudget = onNavigateToBudget,
+            onNewNoteClick = { showNewNoteDialog = true }
         )
 
         val syncStatus = when (uiState) {
-            is UiState.Success -> uiState.data.syncStatus
+            is UiState.Success -> stringResource(uiState.data.syncStatusResId)
             else -> stringResource(R.string.home_sync_local_only)
         }
         Text(
@@ -75,6 +82,29 @@ fun HomeScreen(
             style = MaterialTheme.typography.labelMedium,
             color = AshNotesTheme.colors.textMuted
         )
+    }
+
+    if (showNewNoteDialog) {
+        AshTextInputDialog(
+            title = stringResource(R.string.dialog_new_note_title),
+            label = stringResource(R.string.field_note_title_label),
+            confirmLabel = stringResource(R.string.action_create),
+            blankFallbackValue = stringResource(R.string.note_title_untitled),
+            onConfirm = { title ->
+                onNewNoteClick(title)
+                showNewNoteDialog = false
+            },
+            onDismiss = { showNewNoteDialog = false }
+        )
+    }
+}
+
+private fun getGreetingByTimeOfDayResId(): Int {
+    val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+    return when (hour) {
+        in 5..11 -> R.string.home_greeting_morning
+        in 12..17 -> R.string.home_greeting_afternoon
+        else -> R.string.home_greeting_evening
     }
 }
 
@@ -216,23 +246,28 @@ private fun HomeNoteRow(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = note.title,
+                text = note.title.ifEmpty { stringResource(R.string.note_title_untitled) },
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.weight(1f)
+                maxLines = 1,
+                modifier = Modifier.weight(1f, fill = false)
             )
+            Spacer(modifier = Modifier.width(AshNotesTheme.spacing.default))
             Text(
                 text = note.updatedTime,
                 style = MaterialTheme.typography.labelSmall,
-                color = AshNotesTheme.colors.textMuted
+                color = AshNotesTheme.colors.textMuted,
+                maxLines = 1
             )
         }
-        Text(
-            text = note.preview,
-            style = MaterialTheme.typography.bodyMedium,
-            color = AshNotesTheme.colors.textMuted,
-            maxLines = 2
-        )
+        if (note.preview.isNotEmpty()) {
+            Text(
+                text = note.preview,
+                style = MaterialTheme.typography.bodyMedium,
+                color = AshNotesTheme.colors.textMuted,
+                maxLines = 2
+            )
+        }
     }
 }
 
@@ -290,15 +325,15 @@ private fun HomeActivitySection(uiState: UiState<HomeContent>) {
 
 @Composable
 private fun HomeQuickActionsRow(
-    onNavigateToNotes: () -> Unit,
-    onNavigateToBudget: () -> Unit
+    onNavigateToBudget: () -> Unit,
+    onNewNoteClick: () -> Unit
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(AshNotesTheme.spacing.default)
     ) {
         OutlinedButton(
-            onClick = onNavigateToNotes,
+            onClick = onNewNoteClick,
             modifier = Modifier.weight(1f)
         ) {
             Text(text = stringResource(R.string.home_action_new_note))
@@ -317,27 +352,3 @@ private fun formatMoney(amountMinor: Long): String {
     val minor = Math.abs(amountMinor % 100)
     return String.format(java.util.Locale.getDefault(), "₱%,d.%02d", major, minor)
 }
-
-@StringRes
-private fun getGreetingByTimeOfDayResId(): Int {
-    val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
-    return when (hour) {
-        in 5..11 -> R.string.home_greeting_morning
-        in 12..17 -> R.string.home_greeting_afternoon
-        else -> R.string.home_greeting_evening
-    }
-}
-
-// Supporting data classes
-data class HomeNoteItem(
-    val id: String,
-    val title: String,
-    val preview: String,
-    val updatedTime: String
-)
-
-data class HomeActivityItem(
-    val id: String,
-    val description: String,
-    val time: String
-)

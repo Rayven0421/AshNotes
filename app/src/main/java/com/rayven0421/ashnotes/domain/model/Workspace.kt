@@ -1,0 +1,9 @@
+package com.rayven0421.ashnotes.domain.model
+
+data class Workspace(
+    val id: String,
+    val name: String,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val deletedAt: Long?
+)

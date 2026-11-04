@@ -30,7 +30,8 @@ data class AshColors(
     val ember: Color = AshEmber,
     val emberSoft: Color = AshEmberSoft,
     val over: Color = AshOver,
-    val ok: Color = AshOk
+    val ok: Color = AshOk,
+    val disabledAlpha: Float = 0.38f
 )
 
 val LocalAshColors = staticCompositionLocalOf { AshColors() }

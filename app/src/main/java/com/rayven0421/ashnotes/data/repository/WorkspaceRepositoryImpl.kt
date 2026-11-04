@@ -1,5 +1,6 @@
 package com.rayven0421.ashnotes.data.repository
 
+import com.rayven0421.ashnotes.data.local.AshNotesDatabase
 import com.rayven0421.ashnotes.data.local.dao.WorkspaceDao
 import com.rayven0421.ashnotes.data.local.entity.WorkspaceEntity
 import com.rayven0421.ashnotes.data.mapper.toDomain
@@ -10,12 +11,19 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 class WorkspaceRepositoryImpl @Inject constructor(
-    private val workspaceDao: WorkspaceDao
+    private val workspaceDao: WorkspaceDao,
+    private val database: AshNotesDatabase
 ) : WorkspaceRepository {
 
     override fun observeWorkspaces(): Flow<List<Workspace>> {
         return workspaceDao.observeWorkspaces().map { entities ->
             entities.map { it.toDomain() }
+        }
+    }
+
+    override fun observeActiveWorkspaceId(): Flow<String> {
+        return observeWorkspaces().map { workspaces ->
+            workspaces.firstOrNull()?.id ?: "default_workspace"
         }
     }
 
@@ -43,5 +51,9 @@ class WorkspaceRepositoryImpl @Inject constructor(
 
     override suspend fun deleteWorkspace(id: String) {
         workspaceDao.softDeleteWorkspace(id)
+    }
+
+    override suspend fun clearAllLocalData() {
+        database.clearAllLocalData()
     }
 }

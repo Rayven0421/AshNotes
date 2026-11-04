@@ -2,12 +2,13 @@ package com.rayven0421.ashnotes.feature.home
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
+import com.rayven0421.ashnotes.R
 import com.rayven0421.ashnotes.core.common.UiState
 import com.rayven0421.ashnotes.core.designsystem.AshNotesTheme
 
 internal object SampleHomeData {
     val successState = HomeContent(
-        greeting = "Good afternoon",
+        greetingResId = R.string.home_greeting_afternoon,
         spentMinor = 325000L,
         totalMinor = 500000L,
         paceFraction = 0.6f,
@@ -38,7 +39,7 @@ internal object SampleHomeData {
                 time = "2h ago"
             )
         ),
-        syncStatus = "Local only"
+        syncStatusResId = R.string.home_sync_local_only
     )
 }
 

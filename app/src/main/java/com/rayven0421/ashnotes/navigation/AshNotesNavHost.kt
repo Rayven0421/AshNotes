@@ -19,8 +19,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -29,9 +29,11 @@ import androidx.navigation.compose.rememberNavController
 import com.rayven0421.ashnotes.R
 import com.rayven0421.ashnotes.core.designsystem.AshNotesTheme
 import com.rayven0421.ashnotes.feature.budget.BudgetScreen
+import com.rayven0421.ashnotes.feature.budget.BudgetViewModel
 import com.rayven0421.ashnotes.feature.home.HomeScreen
 import com.rayven0421.ashnotes.feature.home.HomeViewModel
 import com.rayven0421.ashnotes.feature.notes.NotesScreen
+import com.rayven0421.ashnotes.feature.notes.NotesViewModel
 import com.rayven0421.ashnotes.feature.settings.SettingsScreen
 
 sealed class TopLevelDestination(
@@ -110,19 +112,10 @@ fun AshNotesNavHost(
             modifier = Modifier.padding(innerPadding)
         ) {
             composable<Screen.Home> {
-                val viewModel: HomeViewModel = viewModel()
+                val viewModel: HomeViewModel = hiltViewModel()
                 val uiState by viewModel.uiState.collectAsStateWithLifecycle()
                 HomeScreen(
                     uiState = uiState,
-                    onNavigateToNotes = {
-                        navController.navigate(Screen.Notes) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
-                            }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
                     onNavigateToBudget = {
                         navController.navigate(Screen.Budget) {
                             popUpTo(navController.graph.findStartDestination().id) {
@@ -131,21 +124,44 @@ fun AshNotesNavHost(
                             launchSingleTop = true
                             restoreState = true
                         }
+                    },
+                    onNewNoteClick = { title ->
+                        viewModel.createNewNote(title)
                     }
                 )
             }
             composable<Screen.Notes> {
-                val viewModel: com.rayven0421.ashnotes.feature.notes.NotesViewModel = viewModel()
+                val viewModel: NotesViewModel = hiltViewModel()
                 val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                val selectedIds by viewModel.selectedIds.collectAsStateWithLifecycle()
+                val sortOption by viewModel.sortOption.collectAsStateWithLifecycle()
                 NotesScreen(
                     uiState = uiState,
+                    selectedIds = selectedIds,
+                    sortOption = sortOption,
+                    onSortOptionSelected = { option -> viewModel.setSortOption(option) },
                     onSearchQueryChanged = { query ->
                         viewModel.updateSearchQuery(query)
-                    }
+                    },
+                    onNewNoteClick = { title ->
+                        viewModel.createNewNote(title)
+                    },
+                    onTogglePin = { id -> viewModel.togglePin(id) },
+                    onToggleArchive = { id -> viewModel.toggleArchive(id) },
+                    onRename = { id, title -> viewModel.renameNote(id, title) },
+                    onDelete = { id -> viewModel.deleteNote(id) },
+                    onRestore = { id -> viewModel.restoreNote(id) },
+                    onToggleSelectNote = { id -> viewModel.toggleSelectNote(id) },
+                    onSelectAllNotes = { allIds -> viewModel.selectAllNotes(allIds) },
+                    onClearSelection = { viewModel.clearSelection() },
+                    onBulkPinSelected = { isPinned -> viewModel.bulkPinSelected(isPinned) },
+                    onBulkArchiveSelected = { isArchived -> viewModel.bulkArchiveSelected(isArchived) },
+                    onBulkDeleteSelected = { onDeleted -> viewModel.bulkDeleteSelected(onDeleted) },
+                    onBulkRestoreNotes = { ids -> viewModel.bulkRestoreNotes(ids) }
                 )
             }
             composable<Screen.Budget> {
-                val viewModel: com.rayven0421.ashnotes.feature.budget.BudgetViewModel = viewModel()
+                val viewModel: BudgetViewModel = hiltViewModel()
                 val uiState by viewModel.uiState.collectAsStateWithLifecycle()
                 BudgetScreen(
                     uiState = uiState,

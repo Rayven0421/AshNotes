@@ -23,7 +23,9 @@ data class Spacing(
     val extraLarge: Dp = 32.dp,
     val huge: Dp = 48.dp,
     val errorStateHeight: Dp = 200.dp,
-    val emptyStateHeight: Dp = 300.dp
+    val emptyStateHeight: Dp = 300.dp,
+    val dialogMaxWidth: Dp = 560.dp,
+    val listBottomPadding: Dp = 88.dp
 )
 
 val LocalSpacing = staticCompositionLocalOf { Spacing() }
