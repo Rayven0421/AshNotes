@@ -31,7 +31,7 @@ import java.util.UUID
         SyncQueueEntity::class,
         SyncMetadataEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 abstract class AshNotesDatabase : RoomDatabase() {
@@ -188,6 +188,13 @@ abstract class AshNotesDatabase : RoomDatabase() {
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_sync_metadata_entityId` ON `sync_metadata` (`entityId`)")
 
                 seedDefaultCategories(db)
+            }
+        }
+
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `notes` ADD COLUMN `contentJson` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE `notes` ADD COLUMN `documentVersion` INTEGER NOT NULL DEFAULT 1")
             }
         }
     }

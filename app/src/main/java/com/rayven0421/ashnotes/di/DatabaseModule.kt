@@ -33,7 +33,7 @@ object DatabaseModule {
             AshNotesDatabase::class.java,
             AshNotesDatabase.DATABASE_NAME
         )
-            .addMigrations(AshNotesDatabase.MIGRATION_1_2)
+            .addMigrations(AshNotesDatabase.MIGRATION_1_2, AshNotesDatabase.MIGRATION_2_3)
             .addCallback(object : RoomDatabase.Callback() {
                 override fun onCreate(db: SupportSQLiteDatabase) {
                     super.onCreate(db)

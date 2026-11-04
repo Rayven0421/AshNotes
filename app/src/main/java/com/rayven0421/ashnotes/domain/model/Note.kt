@@ -4,6 +4,8 @@ data class Note(
     val id: String,
     val workspaceId: String,
     val title: String,
+    val contentJson: String = "",
+    val documentVersion: Int = 1,
     val isPinned: Boolean,
     val isArchived: Boolean,
     val createdAt: Long,

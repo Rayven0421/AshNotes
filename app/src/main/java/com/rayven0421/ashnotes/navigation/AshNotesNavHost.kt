@@ -30,6 +30,8 @@ import com.rayven0421.ashnotes.R
 import com.rayven0421.ashnotes.core.designsystem.AshNotesTheme
 import com.rayven0421.ashnotes.feature.budget.BudgetScreen
 import com.rayven0421.ashnotes.feature.budget.BudgetViewModel
+import com.rayven0421.ashnotes.feature.editor.EditorScreen
+import com.rayven0421.ashnotes.feature.editor.EditorViewModel
 import com.rayven0421.ashnotes.feature.home.HomeScreen
 import com.rayven0421.ashnotes.feature.home.HomeViewModel
 import com.rayven0421.ashnotes.feature.notes.NotesScreen
@@ -59,49 +61,52 @@ fun AshNotesNavHost(
         TopLevelDestination.Settings
     )
 
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination
+    val showBottomBar = destinations.any { it.route::class.qualifiedName == currentRoute?.route }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surface,
-                contentColor = MaterialTheme.colorScheme.onSurface
-            ) {
-                val navBackStackEntry by navController.currentBackStackEntryAsState()
-                val currentRoute = navBackStackEntry?.destination
-
-                destinations.forEach { destination ->
-                    val selected = currentRoute?.route == destination.route::class.qualifiedName
-                    NavigationBarItem(
-                        selected = selected,
-                        onClick = {
-                            if (!selected) {
-                                navController.navigate(destination.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
+            if (showBottomBar) {
+                NavigationBar(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.onSurface
+                ) {
+                    destinations.forEach { destination ->
+                        val selected = currentRoute?.route == destination.route::class.qualifiedName
+                        NavigationBarItem(
+                            selected = selected,
+                            onClick = {
+                                if (!selected) {
+                                    navController.navigate(destination.route) {
+                                        popUpTo(navController.graph.findStartDestination().id) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
                                     }
-                                    launchSingleTop = true
-                                    restoreState = true
                                 }
-                            }
-                        },
-                        icon = {
-                            Icon(
-                                imageVector = destination.icon,
-                                contentDescription = stringResource(destination.titleResId)
+                            },
+                            icon = {
+                                Icon(
+                                    imageVector = destination.icon,
+                                    contentDescription = stringResource(destination.titleResId)
+                                )
+                            },
+                            label = {
+                                Text(text = stringResource(destination.titleResId))
+                            },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = AshNotesTheme.colors.ember,
+                                selectedTextColor = AshNotesTheme.colors.ember,
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                indicatorColor = AshNotesTheme.colors.emberSoft
                             )
-                        },
-                        label = {
-                            Text(text = stringResource(destination.titleResId))
-                        },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = AshNotesTheme.colors.ember,
-                            selectedTextColor = AshNotesTheme.colors.ember,
-                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            indicatorColor = AshNotesTheme.colors.emberSoft
                         )
-                    )
+                    }
                 }
             }
         }
@@ -109,13 +114,14 @@ fun AshNotesNavHost(
         NavHost(
             navController = navController,
             startDestination = Screen.Home,
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier.fillMaxSize()
         ) {
             composable<Screen.Home> {
                 val viewModel: HomeViewModel = hiltViewModel()
                 val uiState by viewModel.uiState.collectAsStateWithLifecycle()
                 HomeScreen(
                     uiState = uiState,
+                    modifier = Modifier.padding(innerPadding),
                     onNavigateToBudget = {
                         navController.navigate(Screen.Budget) {
                             popUpTo(navController.graph.findStartDestination().id) {
@@ -125,8 +131,13 @@ fun AshNotesNavHost(
                             restoreState = true
                         }
                     },
+                    onNoteClick = { noteId ->
+                        navController.navigate(Screen.Editor(noteId))
+                    },
                     onNewNoteClick = { title ->
-                        viewModel.createNewNote(title)
+                        viewModel.createNewNote(title) { noteId ->
+                            navController.navigate(Screen.Editor(noteId))
+                        }
                     }
                 )
             }
@@ -139,12 +150,18 @@ fun AshNotesNavHost(
                     uiState = uiState,
                     selectedIds = selectedIds,
                     sortOption = sortOption,
+                    modifier = Modifier.padding(innerPadding),
                     onSortOptionSelected = { option -> viewModel.setSortOption(option) },
                     onSearchQueryChanged = { query ->
                         viewModel.updateSearchQuery(query)
                     },
+                    onNoteClick = { noteId ->
+                        navController.navigate(Screen.Editor(noteId))
+                    },
                     onNewNoteClick = { title ->
-                        viewModel.createNewNote(title)
+                        viewModel.createNewNote(title) { noteId ->
+                            navController.navigate(Screen.Editor(noteId))
+                        }
                     },
                     onTogglePin = { id -> viewModel.togglePin(id) },
                     onToggleArchive = { id -> viewModel.toggleArchive(id) },
@@ -165,13 +182,41 @@ fun AshNotesNavHost(
                 val uiState by viewModel.uiState.collectAsStateWithLifecycle()
                 BudgetScreen(
                     uiState = uiState,
+                    modifier = Modifier.padding(innerPadding),
                     onCreateBudgetClick = {
                         viewModel.createBudget()
                     }
                 )
             }
             composable<Screen.Settings> {
-                SettingsScreen()
+                SettingsScreen(
+                    modifier = Modifier.padding(innerPadding)
+                )
+            }
+            composable<Screen.Editor> {
+                val viewModel: EditorViewModel = hiltViewModel()
+                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                EditorScreen(
+                    uiState = uiState,
+                    onBackClick = { navController.popBackStack() },
+                    onTitleChanged = { title -> viewModel.updateTitle(title) },
+                    onParagraphTextChanged = { blockId, text -> viewModel.updateParagraphText(blockId, text) },
+                    onHeadingTextChanged = { blockId, text -> viewModel.updateHeadingText(blockId, text) },
+                    onChecklistTextChanged = { blockId, text -> viewModel.updateChecklistText(blockId, text) },
+                    onToggleChecklistChecked = { blockId -> viewModel.toggleChecklistChecked(blockId) },
+                    onSplitChecklist = { blockId, cursorIndex -> viewModel.splitChecklistBlock(blockId, cursorIndex) },
+                    onBackspaceInChecklist = { blockId, cursorIndex -> viewModel.handleBackspaceInChecklist(blockId, cursorIndex) },
+                    onPasteTextInChecklist = { blockId, text, cursorIndex -> viewModel.pasteTextIntoChecklist(blockId, text, cursorIndex) },
+                    onSplitParagraph = { blockId, cursorIndex -> viewModel.splitParagraphBlock(blockId, cursorIndex) },
+                    onBackspaceInParagraph = { blockId, cursorIndex -> viewModel.handleBackspaceInParagraph(blockId, cursorIndex) },
+                    onBlockFocused = { blockId, cursorIndex -> viewModel.onBlockFocused(blockId, cursorIndex) },
+                    onAppendParagraph = { viewModel.appendParagraphIfNeeded() },
+                    onToggleChecklist = { blockId -> viewModel.toggleChecklistForBlock(blockId) },
+                    onUndoClick = { viewModel.undo() },
+                    onRedoClick = { viewModel.redo() },
+                    onFlushSave = { viewModel.flushSave() },
+                    onClearPendingFocus = { viewModel.clearPendingFocus() }
+                )
             }
         }
     }

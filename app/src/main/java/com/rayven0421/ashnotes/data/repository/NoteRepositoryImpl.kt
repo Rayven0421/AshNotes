@@ -3,6 +3,7 @@ package com.rayven0421.ashnotes.data.repository
 import com.rayven0421.ashnotes.data.local.dao.NoteDao
 import com.rayven0421.ashnotes.data.local.entity.NoteEntity
 import com.rayven0421.ashnotes.data.mapper.toDomain
+import com.rayven0421.ashnotes.data.mapper.toEntity
 import com.rayven0421.ashnotes.domain.model.Note
 import com.rayven0421.ashnotes.domain.model.NoteSortOption
 import com.rayven0421.ashnotes.domain.repository.NoteRepository
@@ -36,18 +37,7 @@ class NoteRepositoryImpl @Inject constructor(
     }
 
     override suspend fun updateNote(note: Note) {
-        noteDao.updateNote(
-            NoteEntity(
-                id = note.id,
-                workspaceId = note.workspaceId,
-                title = note.title,
-                isPinned = note.isPinned,
-                isArchived = note.isArchived,
-                createdAt = note.createdAt,
-                updatedAt = note.updatedAt,
-                deletedAt = note.deletedAt
-            )
-        )
+        noteDao.updateNote(note.toEntity())
     }
 
     override suspend fun deleteNote(id: String) {

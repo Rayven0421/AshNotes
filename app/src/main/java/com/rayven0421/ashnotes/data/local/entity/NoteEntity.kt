@@ -17,6 +17,8 @@ data class NoteEntity(
     val id: String = UUID.randomUUID().toString(),
     val workspaceId: String,
     val title: String,
+    val contentJson: String = "",
+    val documentVersion: Int = 1,
     val isPinned: Boolean = false,
     val isArchived: Boolean = false,
     val createdAt: Long = System.currentTimeMillis(),

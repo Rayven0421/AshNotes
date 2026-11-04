@@ -15,4 +15,7 @@ sealed interface Screen {
 
     @Serializable
     data object Settings : Screen
+
+    @Serializable
+    data class Editor(val noteId: String) : Screen
 }

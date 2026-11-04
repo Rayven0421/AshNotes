@@ -33,6 +33,8 @@ class MapperTest {
             id = "n1",
             workspaceId = "w1",
             title = "Meeting Notes",
+            contentJson = "{\"version\":1,\"blocks\":[]}",
+            documentVersion = 1,
             isPinned = true,
             isArchived = false,
             createdAt = 1000L,
@@ -43,6 +45,8 @@ class MapperTest {
         assertEquals("n1", domain.id)
         assertEquals("w1", domain.workspaceId)
         assertEquals("Meeting Notes", domain.title)
+        assertEquals("{\"version\":1,\"blocks\":[]}", domain.contentJson)
+        assertEquals(1, domain.documentVersion)
         assertEquals(true, domain.isPinned)
         assertEquals(false, domain.isArchived)
         assertEquals(1000L, domain.createdAt)

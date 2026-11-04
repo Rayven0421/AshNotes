@@ -78,6 +78,8 @@
     <string name="action_save">Save</string>
     <string name="action_delete">Delete</string>
     <string name="action_undo">Undo</string>
+    <string name="action_redo">Redo</string>
+    <string name="action_done">Done</string>
     <string name="snackbar_note_deleted">Note deleted</string>
     <string name="snackbar_note_archived">Note archived</string>
     <string name="dialog_new_note_title">New note</string>
@@ -118,4 +120,17 @@
     <string name="notes_sort_updated">Updated (newest first)</string>
     <string name="notes_sort_created">Created</string>
     <string name="notes_sort_title_asc">Title A to Z</string>
+
+    <!-- Editor strings -->
+    <string name="block_unknown_fallback">Unsupported block: %s</string>
+    <string name="action_back">Back</string>
+    <string name="editor_status_saved">Saved</string>
+    <string name="editor_status_saving">Saving…</string>
+    <string name="editor_status_error">Failed to save</string>
+    <string name="editor_title_placeholder">Title</string>
+    <string name="editor_paragraph_placeholder">Start writing</string>
+    <string name="editor_heading_placeholder">Heading</string>
+    <string name="toolbar_checklist">Checklist</string>
+    <string name="checkbox_mark_done">Mark done</string>
+    <string name="checkbox_mark_not_done">Mark not done</string>
 </resources>

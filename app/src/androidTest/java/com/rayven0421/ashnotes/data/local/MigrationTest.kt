@@ -54,4 +54,26 @@ class MigrationTest {
         assertTrue(cursorCategories.getInt(0) > 0)
         cursorCategories.close()
     }
+
+    @Test
+    fun migrate2To3_addsContentJsonAndDocumentVersionToNotes() {
+        val db = helper.createDatabase(TEST_DB, 2)
+        val now = System.currentTimeMillis()
+        db.execSQL("INSERT INTO notes (id, workspaceId, title, isPinned, isArchived, createdAt, updatedAt) VALUES ('n2', 'w1', 'V2 Note', 0, 0, $now, $now)")
+        db.close()
+
+        val migratedDb = helper.runMigrationsAndValidate(
+            TEST_DB,
+            3,
+            true,
+            AshNotesDatabase.MIGRATION_2_3
+        )
+
+        val cursorNote = migratedDb.query("SELECT * FROM notes WHERE id = 'n2'")
+        cursorNote.moveToFirst()
+        assertEquals("V2 Note", cursorNote.getString(cursorNote.getColumnIndexOrThrow("title")))
+        assertEquals("", cursorNote.getString(cursorNote.getColumnIndexOrThrow("contentJson")))
+        assertEquals(1, cursorNote.getInt(cursorNote.getColumnIndexOrThrow("documentVersion")))
+        cursorNote.close()
+    }
 }
