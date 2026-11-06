@@ -84,6 +84,52 @@ object ChecklistOperations {
         }
     }
 
+    fun mapCaretForBlockConversion(
+        rawText: String,
+        convertedBlocks: List<Block>,
+        cursorIndex: Int
+    ): FocusRequest? {
+        if (convertedBlocks.isEmpty()) return null
+        val rawLines = rawText.split("\n")
+        if (convertedBlocks.size > 1 && rawText.contains("\n")) {
+            val clampedCursor = cursorIndex.coerceIn(0, rawText.length)
+            var accumulatedLen = 0
+            var targetLineIndex = 0
+            var cursorInLine = clampedCursor
+
+            for (i in rawLines.indices) {
+                val lineLen = rawLines[i].length
+                val lineEnd = accumulatedLen + lineLen
+                if (clampedCursor <= lineEnd || i == rawLines.size - 1) {
+                    targetLineIndex = i
+                    cursorInLine = (clampedCursor - accumulatedLen).coerceIn(0, lineLen)
+                    break
+                }
+                accumulatedLen += lineLen + 1
+            }
+
+            val convertedIndex = rawLines.take(targetLineIndex).count { it.trim().isNotEmpty() }
+            val focusBlock = convertedBlocks.getOrNull(convertedIndex) ?: convertedBlocks.lastOrNull() ?: convertedBlocks.firstOrNull() ?: return null
+
+            val textLen = when (focusBlock) {
+                is Block.Checklist -> focusBlock.text.length
+                is Block.Paragraph -> focusBlock.text.length
+                is Block.Heading -> focusBlock.text.length
+                else -> 0
+            }
+            return FocusRequest(blockId = focusBlock.id, cursor = cursorInLine.coerceIn(0, textLen))
+        } else {
+            val firstBlock = convertedBlocks.firstOrNull() ?: return null
+            val textLen = when (firstBlock) {
+                is Block.Checklist -> firstBlock.text.length
+                is Block.Paragraph -> firstBlock.text.length
+                is Block.Heading -> firstBlock.text.length
+                else -> 0
+            }
+            return FocusRequest(blockId = firstBlock.id, cursor = cursorIndex.coerceIn(0, textLen))
+        }
+    }
+
     fun splitChecklistBlock(
         blocks: List<Block>,
         targetBlockId: String,

@@ -46,6 +46,15 @@ object ParagraphOperations {
         return OperationResult(repositionBlocks(updated), newBlock.id, 0)
     }
 
+    fun splitHeadingBlock(
+        blocks: List<Block>,
+        targetBlockId: String,
+        cursorIndex: Int,
+        now: Long = System.currentTimeMillis()
+    ): OperationResult {
+        return splitParagraphBlock(blocks, targetBlockId, cursorIndex, now)
+    }
+
     fun mergeOnBackspace(
         blocks: List<Block>,
         targetBlockId: String,
@@ -88,6 +97,138 @@ object ParagraphOperations {
             removeAt(targetIndex)
         }
         return OperationResult(repositionBlocks(updated), prevBlock.id, prevLength)
+    }
+
+    fun pasteTextIntoParagraph(
+        blocks: List<Block>,
+        targetBlockId: String,
+        pastedText: String,
+        cursorIndex: Int,
+        now: Long = System.currentTimeMillis()
+    ): OperationResult {
+        val targetIndex = blocks.indexOfFirst { it.id == targetBlockId }
+        if (targetIndex == -1) return OperationResult(blocks, null)
+
+        val targetBlock = blocks[targetIndex]
+        if (targetBlock !is Block.Paragraph) return OperationResult(blocks, null)
+
+        val lines = pastedText.split("\n")
+        if (lines.size <= 1) {
+            val safeCursor = cursorIndex.coerceIn(0, targetBlock.text.length)
+            val newText = targetBlock.text.substring(0, safeCursor) + pastedText + targetBlock.text.substring(safeCursor)
+            val updated = targetBlock.copy(text = newText, updatedAt = now)
+            val updatedList = blocks.toMutableList().apply { set(targetIndex, updated) }
+            return OperationResult(repositionBlocks(updatedList), targetBlock.id, safeCursor + pastedText.length)
+        }
+
+        val safeCursor = cursorIndex.coerceIn(0, targetBlock.text.length)
+        val prefix = targetBlock.text.substring(0, safeCursor)
+        val suffix = targetBlock.text.substring(safeCursor)
+
+        val firstLineText = prefix + lines.first()
+        val updatedFirst = targetBlock.copy(text = firstLineText, updatedAt = now)
+
+        val middleLines = lines.subList(1, lines.size - 1)
+        val lastLineText = lines.last() + suffix
+
+        val newBlocks = mutableListOf<Block>()
+        newBlocks.add(updatedFirst)
+
+        middleLines.forEach { line ->
+            newBlocks.add(
+                Block.Paragraph(
+                    id = UUID.randomUUID().toString(),
+                    position = 0,
+                    createdAt = now,
+                    updatedAt = now,
+                    metadata = targetBlock.metadata,
+                    text = line
+                )
+            )
+        }
+
+        val lastBlock = Block.Paragraph(
+            id = UUID.randomUUID().toString(),
+            position = 0,
+            createdAt = now,
+            updatedAt = now,
+            metadata = targetBlock.metadata,
+            text = lastLineText
+        )
+        newBlocks.add(lastBlock)
+
+        val updatedList = blocks.toMutableList().apply {
+            removeAt(targetIndex)
+            addAll(targetIndex, newBlocks)
+        }
+
+        return OperationResult(repositionBlocks(updatedList), lastBlock.id, lines.last().length)
+    }
+
+    fun pasteTextIntoHeading(
+        blocks: List<Block>,
+        targetBlockId: String,
+        pastedText: String,
+        cursorIndex: Int,
+        now: Long = System.currentTimeMillis()
+    ): OperationResult {
+        val targetIndex = blocks.indexOfFirst { it.id == targetBlockId }
+        if (targetIndex == -1) return OperationResult(blocks, null)
+
+        val targetBlock = blocks[targetIndex]
+        if (targetBlock !is Block.Heading) return OperationResult(blocks, null)
+
+        val lines = pastedText.split("\n")
+        if (lines.size <= 1) {
+            val safeCursor = cursorIndex.coerceIn(0, targetBlock.text.length)
+            val newText = targetBlock.text.substring(0, safeCursor) + pastedText + targetBlock.text.substring(safeCursor)
+            val updated = targetBlock.copy(text = newText, updatedAt = now)
+            val updatedList = blocks.toMutableList().apply { set(targetIndex, updated) }
+            return OperationResult(repositionBlocks(updatedList), targetBlock.id, safeCursor + pastedText.length)
+        }
+
+        val safeCursor = cursorIndex.coerceIn(0, targetBlock.text.length)
+        val prefix = targetBlock.text.substring(0, safeCursor)
+        val suffix = targetBlock.text.substring(safeCursor)
+
+        val firstLineText = prefix + lines.first()
+        val updatedFirst = targetBlock.copy(text = firstLineText, updatedAt = now)
+
+        val middleLines = lines.subList(1, lines.size - 1)
+        val lastLineText = lines.last() + suffix
+
+        val newBlocks = mutableListOf<Block>()
+        newBlocks.add(updatedFirst)
+
+        middleLines.forEach { line ->
+            newBlocks.add(
+                Block.Paragraph(
+                    id = UUID.randomUUID().toString(),
+                    position = 0,
+                    createdAt = now,
+                    updatedAt = now,
+                    metadata = targetBlock.metadata,
+                    text = line
+                )
+            )
+        }
+
+        val lastBlock = Block.Paragraph(
+            id = UUID.randomUUID().toString(),
+            position = 0,
+            createdAt = now,
+            updatedAt = now,
+            metadata = targetBlock.metadata,
+            text = lastLineText
+        )
+        newBlocks.add(lastBlock)
+
+        val updatedList = blocks.toMutableList().apply {
+            removeAt(targetIndex)
+            addAll(targetIndex, newBlocks)
+        }
+
+        return OperationResult(repositionBlocks(updatedList), lastBlock.id, lines.last().length)
     }
 
     private fun repositionBlocks(blocks: List<Block>): List<Block> {

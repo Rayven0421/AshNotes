@@ -1,6 +1,7 @@
 package com.rayven0421.ashnotes.feature.editor
 
 import com.rayven0421.ashnotes.domain.model.Document
+import com.rayven0421.ashnotes.domain.model.FocusRequest
 
 enum class SaveStatus {
     Saved,
@@ -14,8 +15,7 @@ data class EditorState(
     val document: Document,
     val saveStatus: SaveStatus = SaveStatus.Saved,
     val errorMessage: String? = null,
-    val pendingFocusBlockId: String? = null,
-    val pendingFocusCursorIndex: Int = 0,
+    val focusRequest: FocusRequest? = null,
     val canUndo: Boolean = false,
     val canRedo: Boolean = false
 )

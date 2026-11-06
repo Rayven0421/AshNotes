@@ -208,14 +208,18 @@ fun AshNotesNavHost(
                     onBackspaceInChecklist = { blockId, cursorIndex -> viewModel.handleBackspaceInChecklist(blockId, cursorIndex) },
                     onPasteTextInChecklist = { blockId, text, cursorIndex -> viewModel.pasteTextIntoChecklist(blockId, text, cursorIndex) },
                     onSplitParagraph = { blockId, cursorIndex -> viewModel.splitParagraphBlock(blockId, cursorIndex) },
+                    onSplitHeading = { blockId, cursorIndex -> viewModel.splitHeadingBlock(blockId, cursorIndex) },
+                    onPasteTextInParagraph = { blockId, text, cursorIndex -> viewModel.pasteTextIntoParagraph(blockId, text, cursorIndex) },
+                    onPasteTextInHeading = { blockId, text, cursorIndex -> viewModel.pasteTextIntoHeading(blockId, text, cursorIndex) },
                     onBackspaceInParagraph = { blockId, cursorIndex -> viewModel.handleBackspaceInParagraph(blockId, cursorIndex) },
                     onBlockFocused = { blockId, cursorIndex -> viewModel.onBlockFocused(blockId, cursorIndex) },
                     onAppendParagraph = { viewModel.appendParagraphIfNeeded() },
+                    onTapBelowBlocks = { viewModel.onTapBelowBlocks() },
                     onToggleChecklist = { blockId -> viewModel.toggleChecklistForBlock(blockId) },
                     onUndoClick = { viewModel.undo() },
                     onRedoClick = { viewModel.redo() },
                     onFlushSave = { viewModel.flushSave() },
-                    onClearPendingFocus = { viewModel.clearPendingFocus() }
+                    onClearFocusRequest = { token -> viewModel.clearFocusRequest(token) }
                 )
             }
         }

@@ -218,4 +218,26 @@ class ChecklistOperationsTest {
         assertEquals("Orange", third.text)
         assertNotNull(result.focusBlockId)
     }
+
+    @Test
+    fun mapCaretForBlockConversion_multiLineParagraph_mapsCaretToTargetBlockAndRelativeCursor() {
+        val paragraph = Block.Paragraph(
+            id = "p1",
+            position = 0,
+            createdAt = 1000L,
+            updatedAt = 1000L,
+            text = "Milk\nBread\nEggs"
+        )
+        val converted = ChecklistOperations.convertBlockToChecklist(paragraph, now = 2000L)
+        // Cursor index 7 is inside "Bread" at index 2 ('e') because "Milk\n" is 5 chars
+        val focusRequest = ChecklistOperations.mapCaretForBlockConversion(
+            rawText = paragraph.text,
+            convertedBlocks = converted,
+            cursorIndex = 7
+        )
+
+        assertNotNull(focusRequest)
+        assertEquals(converted[1].id, focusRequest?.blockId)
+        assertEquals(2, focusRequest?.cursor)
+    }
 }

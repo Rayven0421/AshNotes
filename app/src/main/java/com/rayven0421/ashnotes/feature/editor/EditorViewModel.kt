@@ -8,7 +8,9 @@ import com.rayven0421.ashnotes.core.common.UiState
 import com.rayven0421.ashnotes.domain.model.Block
 import com.rayven0421.ashnotes.domain.model.ChecklistOperations
 import com.rayven0421.ashnotes.domain.model.Document
+import com.rayven0421.ashnotes.domain.model.FocusRequest
 import com.rayven0421.ashnotes.domain.model.Note
+import com.rayven0421.ashnotes.domain.model.ParagraphOperations
 import com.rayven0421.ashnotes.domain.repository.NoteRepository
 import com.rayven0421.ashnotes.navigation.Screen
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -187,14 +189,17 @@ class EditorViewModel @Inject constructor(
         currentFocusedBlockId = previousEntry.focusedBlockId
         currentCursorIndex = previousEntry.cursorIndex
 
+        val focusRequest = previousEntry.focusedBlockId?.let {
+            FocusRequest(blockId = it, cursor = previousEntry.cursorIndex)
+        }
+
         val newState = currentState.copy(
             document = previousEntry.document,
             title = previousEntry.title,
             saveStatus = SaveStatus.Saving,
             canUndo = historyManager.canUndo,
             canRedo = historyManager.canRedo,
-            pendingFocusBlockId = previousEntry.focusedBlockId,
-            pendingFocusCursorIndex = previousEntry.cursorIndex
+            focusRequest = focusRequest
         )
         _uiState.value = UiState.Success(newState)
         autoSaveTrigger.tryEmit(Unit)
@@ -216,14 +221,17 @@ class EditorViewModel @Inject constructor(
         currentFocusedBlockId = nextEntry.focusedBlockId
         currentCursorIndex = nextEntry.cursorIndex
 
+        val focusRequest = nextEntry.focusedBlockId?.let {
+            FocusRequest(blockId = it, cursor = nextEntry.cursorIndex)
+        }
+
         val newState = currentState.copy(
             document = nextEntry.document,
             title = nextEntry.title,
             saveStatus = SaveStatus.Saving,
             canUndo = historyManager.canUndo,
             canRedo = historyManager.canRedo,
-            pendingFocusBlockId = nextEntry.focusedBlockId,
-            pendingFocusCursorIndex = nextEntry.cursorIndex
+            focusRequest = focusRequest
         )
         _uiState.value = UiState.Success(newState)
         autoSaveTrigger.tryEmit(Unit)
@@ -277,11 +285,20 @@ class EditorViewModel @Inject constructor(
         val currentState = (_uiState.value as? UiState.Success)?.data ?: return
         cancelTypingSnapshot()
         pushUndoSnapshot(currentState.document, currentState.title)
-        updateBlock(blockId) { block ->
-            if (block is Block.Checklist) {
+        val latestState = (_uiState.value as? UiState.Success)?.data ?: currentState
+
+        val updatedBlocks = latestState.document.blocks.map { block ->
+            if (block.id == blockId && block is Block.Checklist) {
                 block.copy(isChecked = !block.isChecked, updatedAt = System.currentTimeMillis())
             } else block
         }
+        val updatedDocument = latestState.document.copy(blocks = ChecklistOperations.ensureNonEmptyBlocks(updatedBlocks))
+        val newState = latestState.copy(
+            document = updatedDocument,
+            saveStatus = SaveStatus.Saving
+        )
+        _uiState.value = UiState.Success(newState)
+        autoSaveTrigger.tryEmit(Unit)
     }
 
     private fun updateBlock(blockId: String, transform: (Block) -> Block) {
@@ -313,21 +330,21 @@ class EditorViewModel @Inject constructor(
 
         cancelTypingSnapshot()
         pushUndoSnapshot(currentState.document, currentState.title)
+        val latestState = (_uiState.value as? UiState.Success)?.data ?: currentState
 
         val now = System.currentTimeMillis()
         val newParagraph = Block.Paragraph(
             id = UUID.randomUUID().toString(),
-            position = blocks.size,
+            position = latestState.document.blocks.size,
             createdAt = now,
             updatedAt = now,
             text = ""
         )
-        val updatedDocument = currentState.document.copy(blocks = ChecklistOperations.ensureNonEmptyBlocks(blocks + newParagraph))
-        val newState = currentState.copy(
+        val updatedDocument = latestState.document.copy(blocks = ChecklistOperations.ensureNonEmptyBlocks(latestState.document.blocks + newParagraph))
+        val newState = latestState.copy(
             document = updatedDocument,
             saveStatus = SaveStatus.Saving,
-            pendingFocusBlockId = newParagraph.id,
-            pendingFocusCursorIndex = 0
+            focusRequest = FocusRequest(blockId = newParagraph.id, cursor = 0)
         )
         _uiState.value = UiState.Success(newState)
         autoSaveTrigger.tryEmit(Unit)
@@ -337,20 +354,91 @@ class EditorViewModel @Inject constructor(
         val currentState = (_uiState.value as? UiState.Success)?.data ?: return
         cancelTypingSnapshot()
         pushUndoSnapshot(currentState.document, currentState.title)
+        val latestState = (_uiState.value as? UiState.Success)?.data ?: currentState
 
-        val result = com.rayven0421.ashnotes.domain.model.ParagraphOperations.splitParagraphBlock(
-            currentState.document.blocks,
+        val result = ParagraphOperations.splitParagraphBlock(
+            latestState.document.blocks,
             blockId,
             cursorIndex
         )
         if (result.focusBlockId == null) return
 
-        val updatedDocument = currentState.document.copy(blocks = ChecklistOperations.ensureNonEmptyBlocks(result.blocks))
-        val newState = currentState.copy(
+        val updatedDocument = latestState.document.copy(blocks = ChecklistOperations.ensureNonEmptyBlocks(result.blocks))
+        val newState = latestState.copy(
             document = updatedDocument,
             saveStatus = SaveStatus.Saving,
-            pendingFocusBlockId = result.focusBlockId,
-            pendingFocusCursorIndex = result.focusCursorIndex
+            focusRequest = FocusRequest(blockId = result.focusBlockId, cursor = result.focusCursorIndex)
+        )
+        _uiState.value = UiState.Success(newState)
+        autoSaveTrigger.tryEmit(Unit)
+    }
+
+    fun splitHeadingBlock(blockId: String, cursorIndex: Int) {
+        val currentState = (_uiState.value as? UiState.Success)?.data ?: return
+        cancelTypingSnapshot()
+        pushUndoSnapshot(currentState.document, currentState.title)
+        val latestState = (_uiState.value as? UiState.Success)?.data ?: currentState
+
+        val result = ParagraphOperations.splitHeadingBlock(
+            latestState.document.blocks,
+            blockId,
+            cursorIndex
+        )
+        if (result.focusBlockId == null) return
+
+        val updatedDocument = latestState.document.copy(blocks = ChecklistOperations.ensureNonEmptyBlocks(result.blocks))
+        val newState = latestState.copy(
+            document = updatedDocument,
+            saveStatus = SaveStatus.Saving,
+            focusRequest = FocusRequest(blockId = result.focusBlockId, cursor = result.focusCursorIndex)
+        )
+        _uiState.value = UiState.Success(newState)
+        autoSaveTrigger.tryEmit(Unit)
+    }
+
+    fun pasteTextIntoParagraph(blockId: String, pastedText: String, cursorIndex: Int) {
+        val currentState = (_uiState.value as? UiState.Success)?.data ?: return
+        cancelTypingSnapshot()
+        pushUndoSnapshot(currentState.document, currentState.title)
+        val latestState = (_uiState.value as? UiState.Success)?.data ?: currentState
+
+        val result = ParagraphOperations.pasteTextIntoParagraph(
+            latestState.document.blocks,
+            blockId,
+            pastedText,
+            cursorIndex
+        )
+        if (result.focusBlockId == null) return
+
+        val updatedDocument = latestState.document.copy(blocks = ChecklistOperations.ensureNonEmptyBlocks(result.blocks))
+        val newState = latestState.copy(
+            document = updatedDocument,
+            saveStatus = SaveStatus.Saving,
+            focusRequest = FocusRequest(blockId = result.focusBlockId, cursor = result.focusCursorIndex)
+        )
+        _uiState.value = UiState.Success(newState)
+        autoSaveTrigger.tryEmit(Unit)
+    }
+
+    fun pasteTextIntoHeading(blockId: String, pastedText: String, cursorIndex: Int) {
+        val currentState = (_uiState.value as? UiState.Success)?.data ?: return
+        cancelTypingSnapshot()
+        pushUndoSnapshot(currentState.document, currentState.title)
+        val latestState = (_uiState.value as? UiState.Success)?.data ?: currentState
+
+        val result = ParagraphOperations.pasteTextIntoHeading(
+            latestState.document.blocks,
+            blockId,
+            pastedText,
+            cursorIndex
+        )
+        if (result.focusBlockId == null) return
+
+        val updatedDocument = latestState.document.copy(blocks = ChecklistOperations.ensureNonEmptyBlocks(result.blocks))
+        val newState = latestState.copy(
+            document = updatedDocument,
+            saveStatus = SaveStatus.Saving,
+            focusRequest = FocusRequest(blockId = result.focusBlockId, cursor = result.focusCursorIndex)
         )
         _uiState.value = UiState.Success(newState)
         autoSaveTrigger.tryEmit(Unit)
@@ -360,20 +448,20 @@ class EditorViewModel @Inject constructor(
         val currentState = (_uiState.value as? UiState.Success)?.data ?: return
         cancelTypingSnapshot()
         pushUndoSnapshot(currentState.document, currentState.title)
+        val latestState = (_uiState.value as? UiState.Success)?.data ?: currentState
 
-        val result = com.rayven0421.ashnotes.domain.model.ParagraphOperations.mergeOnBackspace(
-            currentState.document.blocks,
+        val result = ParagraphOperations.mergeOnBackspace(
+            latestState.document.blocks,
             blockId,
             cursorIndex
         )
         if (result.focusBlockId == null) return
 
-        val updatedDocument = currentState.document.copy(blocks = ChecklistOperations.ensureNonEmptyBlocks(result.blocks))
-        val newState = currentState.copy(
+        val updatedDocument = latestState.document.copy(blocks = ChecklistOperations.ensureNonEmptyBlocks(result.blocks))
+        val newState = latestState.copy(
             document = updatedDocument,
             saveStatus = SaveStatus.Saving,
-            pendingFocusBlockId = result.focusBlockId,
-            pendingFocusCursorIndex = result.focusCursorIndex
+            focusRequest = FocusRequest(blockId = result.focusBlockId, cursor = result.focusCursorIndex)
         )
         _uiState.value = UiState.Success(newState)
         autoSaveTrigger.tryEmit(Unit)
@@ -386,45 +474,76 @@ class EditorViewModel @Inject constructor(
 
         cancelTypingSnapshot()
         pushUndoSnapshot(currentState.document, currentState.title)
+        val latestState = (_uiState.value as? UiState.Success)?.data ?: currentState
 
-        val targetBlock = currentState.document.blocks[targetIndex]
+        val targetBlock = latestState.document.blocks[targetIndex]
         val converted = ChecklistOperations.convertBlockToChecklist(targetBlock)
 
-        val updatedBlocks = currentState.document.blocks.toMutableList().apply {
+        val updatedBlocks = latestState.document.blocks.toMutableList().apply {
             removeAt(targetIndex)
             addAll(targetIndex, converted)
         }
-        val updatedDocument = currentState.document.copy(blocks = ChecklistOperations.ensureNonEmptyBlocks(updatedBlocks))
-        val focusId = converted.firstOrNull()?.id
+        val updatedDocument = latestState.document.copy(blocks = ChecklistOperations.ensureNonEmptyBlocks(updatedBlocks))
 
-        val newState = currentState.copy(
+        val rawText = when (targetBlock) {
+            is Block.Paragraph -> targetBlock.text
+            is Block.Heading -> targetBlock.text
+            is Block.Checklist -> targetBlock.text
+            else -> ""
+        }
+
+        val focusRequest = ChecklistOperations.mapCaretForBlockConversion(
+            rawText = rawText,
+            convertedBlocks = converted,
+            cursorIndex = currentCursorIndex
+        )
+
+        val newState = latestState.copy(
             document = updatedDocument,
             saveStatus = SaveStatus.Saving,
-            pendingFocusBlockId = focusId,
-            pendingFocusCursorIndex = 0
+            focusRequest = focusRequest
         )
         _uiState.value = UiState.Success(newState)
         autoSaveTrigger.tryEmit(Unit)
+    }
+
+    fun onTapBelowBlocks() {
+        val currentState = (_uiState.value as? UiState.Success)?.data ?: return
+        val blocks = currentState.document.blocks
+        val lastBlock = blocks.lastOrNull()
+
+        when (lastBlock) {
+            is Block.Paragraph -> {
+                _uiState.value = UiState.Success(
+                    currentState.copy(
+                        focusRequest = FocusRequest(blockId = lastBlock.id, cursor = lastBlock.text.length)
+                    )
+                )
+            }
+            else -> {
+                appendParagraphIfNeeded()
+            }
+        }
     }
 
     fun splitChecklistBlock(blockId: String, cursorIndex: Int) {
         val currentState = (_uiState.value as? UiState.Success)?.data ?: return
         cancelTypingSnapshot()
         pushUndoSnapshot(currentState.document, currentState.title)
+        val latestState = (_uiState.value as? UiState.Success)?.data ?: currentState
 
         val result = ChecklistOperations.splitChecklistBlock(
-            currentState.document.blocks,
+            latestState.document.blocks,
             blockId,
             cursorIndex
         )
         if (result.focusBlockId == null) return
 
-        val updatedDocument = currentState.document.copy(blocks = ChecklistOperations.ensureNonEmptyBlocks(result.blocks))
-        val newState = currentState.copy(
+        val updatedDocument = latestState.document.copy(blocks = ChecklistOperations.ensureNonEmptyBlocks(result.blocks))
+        val newState = latestState.copy(
             document = updatedDocument,
             saveStatus = SaveStatus.Saving,
-            pendingFocusBlockId = result.focusBlockId,
-            pendingFocusCursorIndex = result.focusCursorIndex
+            focusRequest = FocusRequest(blockId = result.focusBlockId, cursor = result.focusCursorIndex)
         )
         _uiState.value = UiState.Success(newState)
         autoSaveTrigger.tryEmit(Unit)
@@ -434,20 +553,20 @@ class EditorViewModel @Inject constructor(
         val currentState = (_uiState.value as? UiState.Success)?.data ?: return
         cancelTypingSnapshot()
         pushUndoSnapshot(currentState.document, currentState.title)
+        val latestState = (_uiState.value as? UiState.Success)?.data ?: currentState
 
         val result = ChecklistOperations.mergeOrConvertOnBackspace(
-            currentState.document.blocks,
+            latestState.document.blocks,
             blockId,
             cursorIndex
         )
         if (result.focusBlockId == null) return
 
-        val updatedDocument = currentState.document.copy(blocks = ChecklistOperations.ensureNonEmptyBlocks(result.blocks))
-        val newState = currentState.copy(
+        val updatedDocument = latestState.document.copy(blocks = ChecklistOperations.ensureNonEmptyBlocks(result.blocks))
+        val newState = latestState.copy(
             document = updatedDocument,
             saveStatus = SaveStatus.Saving,
-            pendingFocusBlockId = result.focusBlockId,
-            pendingFocusCursorIndex = result.focusCursorIndex
+            focusRequest = FocusRequest(blockId = result.focusBlockId, cursor = result.focusCursorIndex)
         )
         _uiState.value = UiState.Success(newState)
         autoSaveTrigger.tryEmit(Unit)
@@ -457,30 +576,30 @@ class EditorViewModel @Inject constructor(
         val currentState = (_uiState.value as? UiState.Success)?.data ?: return
         cancelTypingSnapshot()
         pushUndoSnapshot(currentState.document, currentState.title)
+        val latestState = (_uiState.value as? UiState.Success)?.data ?: currentState
 
         val result = ChecklistOperations.pasteTextIntoChecklist(
-            currentState.document.blocks,
+            latestState.document.blocks,
             blockId,
             pastedText,
             cursorIndex
         )
         if (result.focusBlockId == null) return
 
-        val updatedDocument = currentState.document.copy(blocks = ChecklistOperations.ensureNonEmptyBlocks(result.blocks))
-        val newState = currentState.copy(
+        val updatedDocument = latestState.document.copy(blocks = ChecklistOperations.ensureNonEmptyBlocks(result.blocks))
+        val newState = latestState.copy(
             document = updatedDocument,
             saveStatus = SaveStatus.Saving,
-            pendingFocusBlockId = result.focusBlockId,
-            pendingFocusCursorIndex = result.focusCursorIndex
+            focusRequest = FocusRequest(blockId = result.focusBlockId, cursor = result.focusCursorIndex)
         )
         _uiState.value = UiState.Success(newState)
         autoSaveTrigger.tryEmit(Unit)
     }
 
-    fun clearPendingFocus() {
+    fun clearFocusRequest(token: Long) {
         val currentState = (_uiState.value as? UiState.Success)?.data ?: return
-        if (currentState.pendingFocusBlockId != null) {
-            _uiState.value = UiState.Success(currentState.copy(pendingFocusBlockId = null, pendingFocusCursorIndex = 0))
+        if (currentState.focusRequest?.token == token) {
+            _uiState.value = UiState.Success(currentState.copy(focusRequest = null))
         }
     }
 
