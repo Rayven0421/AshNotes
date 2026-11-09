@@ -104,6 +104,9 @@ fun EditorScreen(
     onPasteTextInParagraph: (String, String, Int) -> Unit,
     onPasteTextInHeading: (String, String, Int) -> Unit,
     onBackspaceInParagraph: (String, Int) -> Unit,
+    onDeleteBlock: (String) -> Unit = {},
+    onInsertBlockBelow: (kotlin.reflect.KClass<out com.rayven0421.ashnotes.domain.model.TextBlock>) -> Unit = {},
+    onInsertDivider: () -> Unit = {},
     onBlockFocused: (String, Int) -> Unit,
     onAppendParagraph: () -> Unit,
     onTapBelowBlocks: () -> Unit,
@@ -288,6 +291,7 @@ fun EditorScreen(
                                 onPasteTextInParagraph = onPasteTextInParagraph,
                                 onPasteTextInHeading = onPasteTextInHeading,
                                 onBackspaceInParagraph = onBackspaceInParagraph,
+                                onDeleteBlock = onDeleteBlock,
                                 onBlockFocused = onBlockFocused,
                                 onTapBelowBlocks = onTapBelowBlocks,
                                 onBlockFocusChanged = { focusedBlockId = it },
@@ -306,7 +310,9 @@ fun EditorScreen(
                     if (targetBlockId != null) {
                         EditorBottomToolbar(
                             isChecklistActive = isChecklistActive,
-                            onToggleChecklist = { onToggleChecklist(targetBlockId) }
+                            onToggleChecklist = { onToggleChecklist(targetBlockId) },
+                            onInsertBlock = onInsertBlockBelow,
+                            onInsertDivider = onInsertDivider
                         )
                     }
                 }

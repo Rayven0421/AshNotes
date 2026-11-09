@@ -19,28 +19,51 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
+import androidx.compose.material.icons.automirrored.outlined.ShortText
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.CheckBox
+import androidx.compose.material.icons.outlined.FormatListNumbered
+import androidx.compose.material.icons.outlined.FormatQuote
+import androidx.compose.material.icons.outlined.HorizontalRule
+import androidx.compose.material.icons.outlined.Title
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.rayven0421.ashnotes.R
 import com.rayven0421.ashnotes.core.designsystem.AshNotesTheme
+import com.rayven0421.ashnotes.domain.model.Block
+import com.rayven0421.ashnotes.domain.model.TextBlock
+import kotlin.reflect.KClass
 
 @Composable
 fun EditorBottomToolbar(
     isChecklistActive: Boolean,
     onToggleChecklist: () -> Unit,
+    onInsertBlock: (KClass<out TextBlock>) -> Unit,
+    onInsertDivider: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var isMenuOpen by remember { mutableStateOf(false) }
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -68,6 +91,92 @@ fun EditorBottomToolbar(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(AshNotesTheme.spacing.extraSmall)
             ) {
+                Box {
+                    ToolbarIconButton(
+                        icon = Icons.Outlined.Add,
+                        contentDescription = stringResource(R.string.insert_menu_button),
+                        isActive = isMenuOpen,
+                        onClick = { isMenuOpen = true }
+                    )
+
+                    DropdownMenu(
+                        expanded = isMenuOpen,
+                        onDismissRequest = { isMenuOpen = false },
+                        modifier = Modifier.background(AshNotesTheme.colors.raised)
+                    ) {
+                        DropdownMenuGroupHeader(text = stringResource(R.string.insert_group_text))
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.insert_paragraph)) },
+                            leadingIcon = { Icon(Icons.AutoMirrored.Outlined.ShortText, contentDescription = null) },
+                            onClick = {
+                                isMenuOpen = false
+                                onInsertBlock(Block.Paragraph::class)
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.insert_heading)) },
+                            leadingIcon = { Icon(Icons.Outlined.Title, contentDescription = null) },
+                            onClick = {
+                                isMenuOpen = false
+                                onInsertBlock(Block.Heading::class)
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.insert_quote)) },
+                            leadingIcon = { Icon(Icons.Outlined.FormatQuote, contentDescription = null) },
+                            onClick = {
+                                isMenuOpen = false
+                                onInsertBlock(Block.Quote::class)
+                            }
+                        )
+
+                        HorizontalDivider(
+                            thickness = AshNotesTheme.spacing.hairline,
+                            color = AshNotesTheme.colors.line
+                        )
+
+                        DropdownMenuGroupHeader(text = stringResource(R.string.insert_group_lists))
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.insert_bullet)) },
+                            leadingIcon = { Icon(Icons.AutoMirrored.Outlined.FormatListBulleted, contentDescription = null) },
+                            onClick = {
+                                isMenuOpen = false
+                                onInsertBlock(Block.BulletItem::class)
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.insert_numbered)) },
+                            leadingIcon = { Icon(Icons.Outlined.FormatListNumbered, contentDescription = null) },
+                            onClick = {
+                                isMenuOpen = false
+                                onInsertBlock(Block.NumberedItem::class)
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.insert_checklist)) },
+                            leadingIcon = { Icon(Icons.Outlined.CheckBox, contentDescription = null) },
+                            onClick = {
+                                isMenuOpen = false
+                                onInsertBlock(Block.Checklist::class)
+                            }
+                        )
+
+                        HorizontalDivider(
+                            thickness = AshNotesTheme.spacing.hairline,
+                            color = AshNotesTheme.colors.line
+                        )
+
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.insert_divider)) },
+                            leadingIcon = { Icon(Icons.Outlined.HorizontalRule, contentDescription = null) },
+                            onClick = {
+                                isMenuOpen = false
+                                onInsertDivider()
+                            }
+                        )
+                    }
+                }
+
                 ToolbarIconButton(
                     icon = Icons.Outlined.CheckBox,
                     contentDescription = stringResource(R.string.toolbar_checklist),
@@ -77,6 +186,17 @@ fun EditorBottomToolbar(
             }
         }
     }
+}
+
+@Composable
+private fun DropdownMenuGroupHeader(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelSmall,
+        fontWeight = FontWeight.Bold,
+        color = AshNotesTheme.colors.textMuted,
+        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+    )
 }
 
 @Composable

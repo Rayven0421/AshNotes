@@ -43,6 +43,11 @@ data class ChecklistItem(
     val spans: List<TextSpan> = emptyList()
 )
 
+sealed interface TextBlock : Block {
+    val text: String
+    fun withText(newText: String, now: Long): TextBlock
+}
+
 @Serializable(with = BlockSerializer::class)
 sealed interface Block {
     val id: String
@@ -59,9 +64,12 @@ sealed interface Block {
         override val createdAt: Long,
         override val updatedAt: Long,
         override val metadata: Map<String, String> = emptyMap(),
-        val text: String = "",
+        override val text: String = "",
         val spans: List<TextSpan> = emptyList()
-    ) : Block
+    ) : TextBlock {
+        override fun withText(newText: String, now: Long): Paragraph =
+            copy(text = newText, updatedAt = now)
+    }
 
     @Serializable
     @SerialName("heading")
@@ -71,10 +79,13 @@ sealed interface Block {
         override val createdAt: Long,
         override val updatedAt: Long,
         override val metadata: Map<String, String> = emptyMap(),
-        val text: String = "",
+        override val text: String = "",
         val level: Int = 1,
         val spans: List<TextSpan> = emptyList()
-    ) : Block
+    ) : TextBlock {
+        override fun withText(newText: String, now: Long): Heading =
+            copy(text = newText, updatedAt = now)
+    }
 
     @Serializable
     @SerialName("checklist")
@@ -84,10 +95,68 @@ sealed interface Block {
         override val createdAt: Long,
         override val updatedAt: Long,
         override val metadata: Map<String, String> = emptyMap(),
-        val text: String = "",
+        override val text: String = "",
         val isChecked: Boolean = false,
         val items: List<ChecklistItem> = emptyList(),
         val spans: List<TextSpan> = emptyList()
+    ) : TextBlock {
+        override fun withText(newText: String, now: Long): Checklist =
+            copy(text = newText, updatedAt = now)
+    }
+
+    @Serializable
+    @SerialName("bullet")
+    data class BulletItem(
+        override val id: String,
+        override val position: Int,
+        override val createdAt: Long,
+        override val updatedAt: Long,
+        override val metadata: Map<String, String> = emptyMap(),
+        override val text: String = "",
+        val spans: List<TextSpan> = emptyList()
+    ) : TextBlock {
+        override fun withText(newText: String, now: Long): BulletItem =
+            copy(text = newText, updatedAt = now)
+    }
+
+    @Serializable
+    @SerialName("numbered")
+    data class NumberedItem(
+        override val id: String,
+        override val position: Int,
+        override val createdAt: Long,
+        override val updatedAt: Long,
+        override val metadata: Map<String, String> = emptyMap(),
+        override val text: String = "",
+        val spans: List<TextSpan> = emptyList()
+    ) : TextBlock {
+        override fun withText(newText: String, now: Long): NumberedItem =
+            copy(text = newText, updatedAt = now)
+    }
+
+    @Serializable
+    @SerialName("quote")
+    data class Quote(
+        override val id: String,
+        override val position: Int,
+        override val createdAt: Long,
+        override val updatedAt: Long,
+        override val metadata: Map<String, String> = emptyMap(),
+        override val text: String = "",
+        val spans: List<TextSpan> = emptyList()
+    ) : TextBlock {
+        override fun withText(newText: String, now: Long): Quote =
+            copy(text = newText, updatedAt = now)
+    }
+
+    @Serializable
+    @SerialName("divider")
+    data class Divider(
+        override val id: String,
+        override val position: Int,
+        override val createdAt: Long,
+        override val updatedAt: Long,
+        override val metadata: Map<String, String> = emptyMap()
     ) : Block
 
     @Serializable
@@ -114,6 +183,10 @@ object BlockSerializer : KSerializer<Block> {
             "paragraph" -> decoder.json.decodeFromJsonElement(Block.Paragraph.serializer(), jsonObject)
             "heading" -> decoder.json.decodeFromJsonElement(Block.Heading.serializer(), jsonObject)
             "checklist" -> decoder.json.decodeFromJsonElement(Block.Checklist.serializer(), jsonObject)
+            "bullet" -> decoder.json.decodeFromJsonElement(Block.BulletItem.serializer(), jsonObject)
+            "numbered" -> decoder.json.decodeFromJsonElement(Block.NumberedItem.serializer(), jsonObject)
+            "quote" -> decoder.json.decodeFromJsonElement(Block.Quote.serializer(), jsonObject)
+            "divider" -> decoder.json.decodeFromJsonElement(Block.Divider.serializer(), jsonObject)
             else -> {
                 val id = jsonObject["id"]?.jsonPrimitive?.content ?: ""
                 val position = jsonObject["position"]?.jsonPrimitive?.int ?: 0
@@ -160,6 +233,38 @@ object BlockSerializer : KSerializer<Block> {
                 val element = encoder.json.encodeToJsonElement(Block.Checklist.serializer(), value).jsonObject
                 val result = buildJsonObject {
                     put("type", JsonPrimitive("checklist"))
+                    element.forEach { (k, v) -> put(k, v) }
+                }
+                encoder.encodeJsonElement(result)
+            }
+            is Block.BulletItem -> {
+                val element = encoder.json.encodeToJsonElement(Block.BulletItem.serializer(), value).jsonObject
+                val result = buildJsonObject {
+                    put("type", JsonPrimitive("bullet"))
+                    element.forEach { (k, v) -> put(k, v) }
+                }
+                encoder.encodeJsonElement(result)
+            }
+            is Block.NumberedItem -> {
+                val element = encoder.json.encodeToJsonElement(Block.NumberedItem.serializer(), value).jsonObject
+                val result = buildJsonObject {
+                    put("type", JsonPrimitive("numbered"))
+                    element.forEach { (k, v) -> put(k, v) }
+                }
+                encoder.encodeJsonElement(result)
+            }
+            is Block.Quote -> {
+                val element = encoder.json.encodeToJsonElement(Block.Quote.serializer(), value).jsonObject
+                val result = buildJsonObject {
+                    put("type", JsonPrimitive("quote"))
+                    element.forEach { (k, v) -> put(k, v) }
+                }
+                encoder.encodeJsonElement(result)
+            }
+            is Block.Divider -> {
+                val element = encoder.json.encodeToJsonElement(Block.Divider.serializer(), value).jsonObject
+                val result = buildJsonObject {
+                    put("type", JsonPrimitive("divider"))
                     element.forEach { (k, v) -> put(k, v) }
                 }
                 encoder.encodeJsonElement(result)

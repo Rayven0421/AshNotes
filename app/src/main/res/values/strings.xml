@@ -133,4 +133,15 @@
     <string name="toolbar_checklist">Checklist</string>
     <string name="checkbox_mark_done">Mark done</string>
     <string name="checkbox_mark_not_done">Mark not done</string>
+    <string name="insert_menu_button">Insert block</string>
+    <string name="insert_group_text">Text</string>
+    <string name="insert_group_lists">Lists</string>
+    <string name="insert_paragraph">Paragraph</string>
+    <string name="insert_heading">Heading</string>
+    <string name="insert_quote">Quote</string>
+    <string name="insert_bullet">Bullet list</string>
+    <string name="insert_numbered">Numbered list</string>
+    <string name="insert_checklist">Checklist</string>
+    <string name="insert_divider">Divider</string>
+    <string name="block_divider_label">Divider</string>
 </resources>

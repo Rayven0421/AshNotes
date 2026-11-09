@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,9 +21,14 @@ import com.rayven0421.ashnotes.R
 import com.rayven0421.ashnotes.core.designsystem.AshNotesTheme
 import com.rayven0421.ashnotes.domain.model.Block
 import com.rayven0421.ashnotes.domain.model.FocusRequest
+import com.rayven0421.ashnotes.domain.model.TextBlockOperations
+import com.rayven0421.ashnotes.feature.editor.blocks.BulletBlockItem
 import com.rayven0421.ashnotes.feature.editor.blocks.ChecklistBlockItem
+import com.rayven0421.ashnotes.feature.editor.blocks.DividerBlockItem
 import com.rayven0421.ashnotes.feature.editor.blocks.HeadingBlockItem
+import com.rayven0421.ashnotes.feature.editor.blocks.NumberedBlockItem
 import com.rayven0421.ashnotes.feature.editor.blocks.ParagraphBlockItem
+import com.rayven0421.ashnotes.feature.editor.blocks.QuoteBlockItem
 
 @Composable
 fun EditorBlockList(
@@ -43,6 +48,7 @@ fun EditorBlockList(
     onPasteTextInParagraph: (String, String, Int) -> Unit,
     onPasteTextInHeading: (String, String, Int) -> Unit,
     onBackspaceInParagraph: (String, Int) -> Unit,
+    onDeleteBlock: (String) -> Unit,
     onBlockFocused: (String, Int) -> Unit,
     onTapBelowBlocks: () -> Unit,
     onBlockFocusChanged: (String) -> Unit,
@@ -58,7 +64,7 @@ fun EditorBlockList(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(AshNotesTheme.spacing.small)
         ) {
-            items(blocks, key = { it.id }) { block ->
+            itemsIndexed(blocks, key = { _, block -> block.id }) { index, block ->
                 val focusRequester = focusRequesters.getOrPut(block.id) { FocusRequester() }
                 val blockModifier = Modifier
                     .fillMaxWidth()
@@ -138,6 +144,83 @@ fun EditorBlockList(
                                 onBlockFocusChanged(block.id)
                                 onBlockFocused(block.id, cursorIndex)
                             }
+                        )
+                    }
+                    is Block.BulletItem -> {
+                        BulletBlockItem(
+                            block = block,
+                            focusRequest = itemFocusRequest,
+                            modifier = blockModifier,
+                            onTextChanged = { newText ->
+                                onParagraphTextChanged(block.id, newText)
+                            },
+                            onEnterPressed = { cursorIndex ->
+                                onSplitParagraph(block.id, cursorIndex)
+                            },
+                            onBackspaceAtStart = {
+                                onBackspaceInParagraph(block.id, 0)
+                            },
+                            onPasteMultiLine = { pastedText, cursorIndex ->
+                                onPasteTextInParagraph(block.id, pastedText, cursorIndex)
+                            },
+                            onFocused = { cursorIndex ->
+                                onBlockFocusChanged(block.id)
+                                onBlockFocused(block.id, cursorIndex)
+                            }
+                        )
+                    }
+                    is Block.NumberedItem -> {
+                        NumberedBlockItem(
+                            block = block,
+                            number = TextBlockOperations.numberFor(blocks, index),
+                            focusRequest = itemFocusRequest,
+                            modifier = blockModifier,
+                            onTextChanged = { newText ->
+                                onParagraphTextChanged(block.id, newText)
+                            },
+                            onEnterPressed = { cursorIndex ->
+                                onSplitParagraph(block.id, cursorIndex)
+                            },
+                            onBackspaceAtStart = {
+                                onBackspaceInParagraph(block.id, 0)
+                            },
+                            onPasteMultiLine = { pastedText, cursorIndex ->
+                                onPasteTextInParagraph(block.id, pastedText, cursorIndex)
+                            },
+                            onFocused = { cursorIndex ->
+                                onBlockFocusChanged(block.id)
+                                onBlockFocused(block.id, cursorIndex)
+                            }
+                        )
+                    }
+                    is Block.Quote -> {
+                        QuoteBlockItem(
+                            block = block,
+                            focusRequest = itemFocusRequest,
+                            modifier = blockModifier,
+                            onTextChanged = { newText ->
+                                onParagraphTextChanged(block.id, newText)
+                            },
+                            onEnterPressed = { cursorIndex ->
+                                onSplitParagraph(block.id, cursorIndex)
+                            },
+                            onBackspaceAtStart = {
+                                onBackspaceInParagraph(block.id, 0)
+                            },
+                            onPasteMultiLine = { pastedText, cursorIndex ->
+                                onPasteTextInParagraph(block.id, pastedText, cursorIndex)
+                            },
+                            onFocused = { cursorIndex ->
+                                onBlockFocusChanged(block.id)
+                                onBlockFocused(block.id, cursorIndex)
+                            }
+                        )
+                    }
+                    is Block.Divider -> {
+                        DividerBlockItem(
+                            block = block,
+                            onDelete = { onDeleteBlock(block.id) },
+                            modifier = blockModifier
                         )
                     }
                     is Block.UnknownBlock -> {
