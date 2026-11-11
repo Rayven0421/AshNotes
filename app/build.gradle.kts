@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -9,6 +11,14 @@ plugins {
 
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
+}
+
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.inputStream().use { stream ->
+        localProperties.load(stream)
+    }
 }
 
 android {
@@ -25,6 +35,18 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("release") {
+            val keystoreFile = rootProject.file("Rayven0421.jks")
+            if (keystoreFile.exists()) {
+                storeFile = keystoreFile
+                storePassword = localProperties.getProperty("KEYSTORE_PASSWORD") ?: "keystoreUmF5dmVurbrA?+"
+                keyAlias = localProperties.getProperty("KEY_ALIAS") ?: "rayven0421"
+                keyPassword = localProperties.getProperty("KEY_PASSWORD") ?: "keystoreUmF5dmVurbrA?+"
+            }
+        }
+    }
+
     // Required by AGP 9.5 for Compose Preview generation and unit test Android resource resolution
     testOptions {
         unitTests {
@@ -33,7 +55,13 @@ android {
     }
 
     buildTypes {
+        debug {
+            isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
+        }
         release {
+            isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
             optimization {
                 enable = true
                 packageScope = setOf("androidx.**", "kotlin.**", "kotlinx.**")
@@ -51,6 +79,14 @@ android {
     sourceSets {
         getByName("androidTest") {
             assets.directories.add("$projectDir/schemas")
+        }
+    }
+}
+
+androidComponents {
+    onVariants { variant ->
+        variant.outputs.forEach { output ->
+            output.outputFileName.set("AshNotes-${android.defaultConfig.versionName}-${variant.name}.apk")
         }
     }
 }
