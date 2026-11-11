@@ -11,14 +11,12 @@ object EditorTokens {
     val DisabledAlpha = 0.4f
     val PlaceholderAlpha = 0.6f
 
-    val ChecklistSlotWidth = 40.dp
+    val ListGutterWidth = 28.dp
     val ChecklistBoxSize = 18.dp
     val ChecklistCheckIconSize = 12.dp
     val ChecklistCornerRadius = 4.dp
 
-    val BulletSlotWidth = 28.dp
     val BulletSize = 6.dp
-    val NumberedSlotWidth = 32.dp
     val QuoteBarWidth = 2.dp
     val DividerThickness = 1.dp
     val DividerVerticalSpacing = 8.dp

@@ -2,7 +2,6 @@ package com.rayven0421.ashnotes.feature.editor.blocks
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
@@ -55,7 +54,7 @@ fun NumberedBlockItem(
         ) {
             Box(
                 modifier = Modifier
-                    .width(EditorTokens.NumberedSlotWidth)
+                    .width(EditorTokens.ListGutterWidth)
                     .fillMaxHeight(),
                 contentAlignment = Alignment.TopStart
             ) {
@@ -64,8 +63,6 @@ fun NumberedBlockItem(
                     style = numberStyle
                 )
             }
-
-            Spacer(modifier = Modifier.width(AshNotesTheme.spacing.extraSmall))
 
             BlockTextField(
                 blockId = block.id,

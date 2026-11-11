@@ -465,7 +465,13 @@ object TextBlockOperations {
             return OperationResult(ensured, converted.id, 0)
         }
 
-        val dummySource = (targetBlock as? TextBlock) ?: Block.Paragraph(id = "", position = 0, createdAt = now, updatedAt = now)
+        val dummySource = Block.Paragraph(
+            id = "",
+            position = 0,
+            createdAt = now,
+            updatedAt = now,
+            metadata = (targetBlock as? TextBlock)?.metadata ?: emptyMap()
+        )
         val newBlock = ruleForType(type).create(
             dummySource,
             UUID.randomUUID().toString(),

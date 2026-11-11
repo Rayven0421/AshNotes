@@ -34,7 +34,10 @@ import com.rayven0421.ashnotes.feature.editor.EditorTokens
 @Composable
 fun DividerBlockItem(
     block: Block.Divider,
+    onSelect: () -> Unit,
     onDelete: () -> Unit,
+    onFocused: (Int) -> Unit,
+    onBlockFocusChanged: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var isFocused by remember { mutableStateOf(false) }
@@ -49,7 +52,13 @@ fun DividerBlockItem(
             .semantics {
                 contentDescription = contentDesc
             }
-            .onFocusChanged { isFocused = it.isFocused }
+            .onFocusChanged { focusState ->
+                isFocused = focusState.isFocused
+                if (focusState.isFocused) {
+                    onBlockFocusChanged(block.id)
+                    onFocused(0)
+                }
+            }
             .focusable()
             .onPreviewKeyEvent { keyEvent ->
                 if (keyEvent.type == KeyEventType.KeyDown && (keyEvent.key == Key.Backspace || keyEvent.key == Key.Delete)) {
@@ -60,7 +69,7 @@ fun DividerBlockItem(
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
-                onClick = onDelete
+                onClick = onSelect
             ),
         contentAlignment = Alignment.Center
     ) {

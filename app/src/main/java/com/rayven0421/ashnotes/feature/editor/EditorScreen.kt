@@ -43,7 +43,6 @@ import com.rayven0421.ashnotes.BuildConfig
 import com.rayven0421.ashnotes.R
 import com.rayven0421.ashnotes.core.common.UiState
 import com.rayven0421.ashnotes.core.designsystem.AshNotesTheme
-import com.rayven0421.ashnotes.domain.model.Block
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -110,7 +109,6 @@ fun EditorScreen(
     onBlockFocused: (String, Int) -> Unit,
     onAppendParagraph: () -> Unit,
     onTapBelowBlocks: () -> Unit,
-    onToggleChecklist: (String) -> Unit,
     onUndoClick: () -> Unit,
     onRedoClick: () -> Unit,
     onFlushSave: () -> Unit,
@@ -304,13 +302,10 @@ fun EditorScreen(
 
                     // Floating bottom toolbar
                     val activeBlock = blocks.firstOrNull { it.id == focusedBlockId } ?: blocks.lastOrNull()
-                    val isChecklistActive = activeBlock is Block.Checklist
                     val targetBlockId = activeBlock?.id
 
                     if (targetBlockId != null) {
                         EditorBottomToolbar(
-                            isChecklistActive = isChecklistActive,
-                            onToggleChecklist = { onToggleChecklist(targetBlockId) },
                             onInsertBlock = onInsertBlockBelow,
                             onInsertDivider = onInsertDivider
                         )

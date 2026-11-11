@@ -56,8 +56,6 @@ import kotlin.reflect.KClass
 
 @Composable
 fun EditorBottomToolbar(
-    isChecklistActive: Boolean,
-    onToggleChecklist: () -> Unit,
     onInsertBlock: (KClass<out TextBlock>) -> Unit,
     onInsertDivider: () -> Unit,
     modifier: Modifier = Modifier
@@ -176,13 +174,6 @@ fun EditorBottomToolbar(
                         )
                     }
                 }
-
-                ToolbarIconButton(
-                    icon = Icons.Outlined.CheckBox,
-                    contentDescription = stringResource(R.string.toolbar_checklist),
-                    isActive = isChecklistActive,
-                    onClick = onToggleChecklist
-                )
             }
         }
     }

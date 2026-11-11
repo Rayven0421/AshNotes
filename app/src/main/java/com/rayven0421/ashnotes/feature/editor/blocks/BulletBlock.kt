@@ -3,7 +3,6 @@ package com.rayven0421.ashnotes.feature.editor.blocks
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -63,7 +62,7 @@ fun BulletBlockItem(
         ) {
             Box(
                 modifier = Modifier
-                    .width(EditorTokens.BulletSlotWidth)
+                    .width(EditorTokens.ListGutterWidth)
                     .fillMaxHeight(),
                 contentAlignment = Alignment.TopCenter
             ) {
@@ -75,8 +74,6 @@ fun BulletBlockItem(
                         .background(AshNotesTheme.colors.textMuted)
                 )
             }
-
-            Spacer(modifier = Modifier.width(AshNotesTheme.spacing.extraSmall))
 
             BlockTextField(
                 blockId = block.id,

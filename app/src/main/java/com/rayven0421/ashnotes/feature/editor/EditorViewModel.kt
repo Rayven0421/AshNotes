@@ -128,12 +128,17 @@ class EditorViewModel @Inject constructor(
         currentCursorIndex = cursorIndex
     }
 
-    private fun pushUndoSnapshot(doc: Document, title: String) {
+    private fun pushUndoSnapshot(
+        doc: Document,
+        title: String,
+        focusBlockId: String? = currentFocusedBlockId,
+        focusCursor: Int = currentCursorIndex
+    ) {
         val entry = HistoryEntry(
             document = doc,
             title = title,
-            focusedBlockId = currentFocusedBlockId,
-            cursorIndex = currentCursorIndex
+            focusedBlockId = focusBlockId,
+            cursorIndex = focusCursor
         )
         historyManager.pushSnapshot(entry)
         updateUndoRedoFlags()
@@ -341,18 +346,21 @@ class EditorViewModel @Inject constructor(
 
     fun splitTextBlock(blockId: String, cursorIndex: Int) {
         val currentState = (_uiState.value as? UiState.Success)?.data ?: return
-        cancelTypingSnapshot()
-        pushUndoSnapshot(currentState.document, currentState.title)
-        val latestState = (_uiState.value as? UiState.Success)?.data ?: currentState
 
         val result = TextBlockOperations.split(
-            latestState.document.blocks,
+            currentState.document.blocks,
             blockId,
             cursorIndex
         )
         if (result.focusBlockId == null) return
 
-        val updatedDocument = latestState.document.copy(blocks = TextBlockOperations.ensureNonEmptyBlocks(result.blocks))
+        val updatedDocument = currentState.document.copy(blocks = TextBlockOperations.ensureNonEmptyBlocks(result.blocks))
+        if (updatedDocument == currentState.document) return
+
+        cancelTypingSnapshot()
+        pushUndoSnapshot(currentState.document, currentState.title)
+        val latestState = (_uiState.value as? UiState.Success)?.data ?: currentState
+
         val newState = latestState.copy(
             document = updatedDocument,
             saveStatus = SaveStatus.Saving,
@@ -368,19 +376,22 @@ class EditorViewModel @Inject constructor(
 
     fun pasteTextIntoBlock(blockId: String, pastedText: String, cursorIndex: Int) {
         val currentState = (_uiState.value as? UiState.Success)?.data ?: return
-        cancelTypingSnapshot()
-        pushUndoSnapshot(currentState.document, currentState.title)
-        val latestState = (_uiState.value as? UiState.Success)?.data ?: currentState
 
         val result = TextBlockOperations.paste(
-            latestState.document.blocks,
+            currentState.document.blocks,
             blockId,
             pastedText,
             cursorIndex
         )
         if (result.focusBlockId == null) return
 
-        val updatedDocument = latestState.document.copy(blocks = TextBlockOperations.ensureNonEmptyBlocks(result.blocks))
+        val updatedDocument = currentState.document.copy(blocks = TextBlockOperations.ensureNonEmptyBlocks(result.blocks))
+        if (updatedDocument == currentState.document) return
+
+        cancelTypingSnapshot()
+        pushUndoSnapshot(currentState.document, currentState.title)
+        val latestState = (_uiState.value as? UiState.Success)?.data ?: currentState
+
         val newState = latestState.copy(
             document = updatedDocument,
             saveStatus = SaveStatus.Saving,
@@ -395,18 +406,21 @@ class EditorViewModel @Inject constructor(
 
     fun handleBackspaceInBlock(blockId: String, cursorIndex: Int) {
         val currentState = (_uiState.value as? UiState.Success)?.data ?: return
-        cancelTypingSnapshot()
-        pushUndoSnapshot(currentState.document, currentState.title)
-        val latestState = (_uiState.value as? UiState.Success)?.data ?: currentState
 
         val result = TextBlockOperations.mergeOnBackspace(
-            latestState.document.blocks,
+            currentState.document.blocks,
             blockId,
             cursorIndex
         )
         if (result.focusBlockId == null) return
 
-        val updatedDocument = latestState.document.copy(blocks = TextBlockOperations.ensureNonEmptyBlocks(result.blocks))
+        val updatedDocument = currentState.document.copy(blocks = TextBlockOperations.ensureNonEmptyBlocks(result.blocks))
+        if (updatedDocument == currentState.document) return
+
+        cancelTypingSnapshot()
+        pushUndoSnapshot(currentState.document, currentState.title, focusBlockId = blockId, focusCursor = cursorIndex)
+        val latestState = (_uiState.value as? UiState.Success)?.data ?: currentState
+
         val newState = latestState.copy(
             document = updatedDocument,
             saveStatus = SaveStatus.Saving,
@@ -421,17 +435,19 @@ class EditorViewModel @Inject constructor(
         val targetBlock = currentState.document.blocks.find { it.id == blockId }
         if (targetBlock !is TextBlock) return
 
-        cancelTypingSnapshot()
-        pushUndoSnapshot(currentState.document, currentState.title)
-        val latestState = (_uiState.value as? UiState.Success)?.data ?: currentState
-
         val (updatedBlocks, focusRequest) = TextBlockOperations.toggleChecklistBlock(
-            latestState.document.blocks,
+            currentState.document.blocks,
             blockId,
             currentCursorIndex
         )
 
-        val updatedDocument = latestState.document.copy(blocks = TextBlockOperations.ensureNonEmptyBlocks(updatedBlocks))
+        val updatedDocument = currentState.document.copy(blocks = TextBlockOperations.ensureNonEmptyBlocks(updatedBlocks))
+        if (updatedDocument == currentState.document) return
+
+        cancelTypingSnapshot()
+        pushUndoSnapshot(currentState.document, currentState.title)
+        val latestState = (_uiState.value as? UiState.Success)?.data ?: currentState
+
         val newState = latestState.copy(
             document = updatedDocument,
             saveStatus = SaveStatus.Saving,
@@ -443,19 +459,22 @@ class EditorViewModel @Inject constructor(
 
     fun insertBlockBelow(type: KClass<out TextBlock>) {
         val currentState = (_uiState.value as? UiState.Success)?.data ?: return
-        cancelTypingSnapshot()
-        pushUndoSnapshot(currentState.document, currentState.title)
-        val latestState = (_uiState.value as? UiState.Success)?.data ?: currentState
 
-        val targetBlockId = currentFocusedBlockId ?: latestState.document.blocks.lastOrNull()?.id ?: ""
+        val targetBlockId = currentFocusedBlockId ?: currentState.document.blocks.lastOrNull()?.id ?: ""
         val result = TextBlockOperations.insertBlockBelow(
-            latestState.document.blocks,
+            currentState.document.blocks,
             targetBlockId,
             type
         )
         if (result.focusBlockId == null) return
 
-        val updatedDocument = latestState.document.copy(blocks = TextBlockOperations.ensureNonEmptyBlocks(result.blocks))
+        val updatedDocument = currentState.document.copy(blocks = TextBlockOperations.ensureNonEmptyBlocks(result.blocks))
+        if (updatedDocument == currentState.document) return
+
+        cancelTypingSnapshot()
+        pushUndoSnapshot(currentState.document, currentState.title)
+        val latestState = (_uiState.value as? UiState.Success)?.data ?: currentState
+
         val newState = latestState.copy(
             document = updatedDocument,
             saveStatus = SaveStatus.Saving,
@@ -467,18 +486,21 @@ class EditorViewModel @Inject constructor(
 
     fun insertDivider() {
         val currentState = (_uiState.value as? UiState.Success)?.data ?: return
-        cancelTypingSnapshot()
-        pushUndoSnapshot(currentState.document, currentState.title)
-        val latestState = (_uiState.value as? UiState.Success)?.data ?: currentState
 
-        val targetBlockId = currentFocusedBlockId ?: latestState.document.blocks.lastOrNull()?.id ?: ""
+        val targetBlockId = currentFocusedBlockId ?: currentState.document.blocks.lastOrNull()?.id ?: ""
         val result = TextBlockOperations.insertDivider(
-            latestState.document.blocks,
+            currentState.document.blocks,
             targetBlockId
         )
         if (result.focusBlockId == null) return
 
-        val updatedDocument = latestState.document.copy(blocks = TextBlockOperations.ensureNonEmptyBlocks(result.blocks))
+        val updatedDocument = currentState.document.copy(blocks = TextBlockOperations.ensureNonEmptyBlocks(result.blocks))
+        if (updatedDocument == currentState.document) return
+
+        cancelTypingSnapshot()
+        pushUndoSnapshot(currentState.document, currentState.title)
+        val latestState = (_uiState.value as? UiState.Success)?.data ?: currentState
+
         val newState = latestState.copy(
             document = updatedDocument,
             saveStatus = SaveStatus.Saving,
@@ -490,15 +512,18 @@ class EditorViewModel @Inject constructor(
 
     fun deleteBlock(blockId: String) {
         val currentState = (_uiState.value as? UiState.Success)?.data ?: return
-        cancelTypingSnapshot()
-        pushUndoSnapshot(currentState.document, currentState.title)
-        val latestState = (_uiState.value as? UiState.Success)?.data ?: currentState
 
         val result = TextBlockOperations.deleteBlock(
-            latestState.document.blocks,
+            currentState.document.blocks,
             blockId
         )
-        val updatedDocument = latestState.document.copy(blocks = TextBlockOperations.ensureNonEmptyBlocks(result.blocks))
+        val updatedDocument = currentState.document.copy(blocks = TextBlockOperations.ensureNonEmptyBlocks(result.blocks))
+        if (updatedDocument == currentState.document) return
+
+        cancelTypingSnapshot()
+        pushUndoSnapshot(currentState.document, currentState.title, focusBlockId = blockId, focusCursor = 0)
+        val latestState = (_uiState.value as? UiState.Success)?.data ?: currentState
+
         val focusRequest = result.focusBlockId?.let { FocusRequest(blockId = it, cursor = result.focusCursorIndex) }
         val newState = latestState.copy(
             document = updatedDocument,

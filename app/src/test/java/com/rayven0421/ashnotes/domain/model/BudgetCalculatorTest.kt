@@ -6,7 +6,22 @@ import org.junit.Test
 class BudgetCalculatorTest {
 
     @Test
-    fun zeroBudget_calculatesSpentAndRemainingCorrectly() {
+    fun zeroBudget_withZeroSpent_calculatesCorrectly() {
+        val budget = Budget(
+            workspaceId = "w1",
+            name = "Zero Budget",
+            amountMinor = 0L,
+            startDate = 0L,
+            endDate = 1000L
+        )
+        val summary = BudgetCalculator.calculateSummaryForBudget(budget, emptyList())
+        assertEquals(0L, summary.totalSpent)
+        assertEquals(0L, summary.remaining)
+        assertEquals(0.0f, summary.percentUsed, 0.001f)
+    }
+
+    @Test
+    fun zeroBudget_withSpent_calculatesSpentAndRemainingCorrectly() {
         val budget = Budget(
             workspaceId = "w1",
             name = "Zero Budget",
@@ -60,6 +75,30 @@ class BudgetCalculatorTest {
     }
 
     @Test
+    fun overBudgetByOneMinorUnit_calculatesSpentAndRemainingCorrectly() {
+        val budget = Budget(
+            workspaceId = "w1",
+            name = "Budget",
+            amountMinor = 10000L,
+            startDate = 0L,
+            endDate = 1000L
+        )
+        val expenses = listOf(
+            Expense(
+                budgetId = budget.id,
+                categoryId = "c1",
+                amountMinor = 10001L,
+                description = "Extra centavo item"
+            )
+        )
+
+        val summary = BudgetCalculator.calculateSummaryForBudget(budget, expenses)
+        assertEquals(10001L, summary.totalSpent)
+        assertEquals(-1L, summary.remaining)
+        assertEquals(1.0001f, summary.percentUsed, 0.0001f)
+    }
+
+    @Test
     fun overBudget_calculatesSpentAndRemainingCorrectly() {
         val budget = Budget(
             workspaceId = "w1",
@@ -81,6 +120,30 @@ class BudgetCalculatorTest {
         assertEquals(8000L, summary.totalSpent)
         assertEquals(-3000L, summary.remaining)
         assertEquals(1.6f, summary.percentUsed, 0.001f)
+    }
+
+    @Test
+    fun largeValue_calculatesSpentAndRemainingCorrectly() {
+        val budget = Budget(
+            workspaceId = "w1",
+            name = "Large Budget",
+            amountMinor = 1_000_000_000_00L, // ₱1,000,000,000.00
+            startDate = 0L,
+            endDate = 1000L
+        )
+        val expenses = listOf(
+            Expense(
+                budgetId = budget.id,
+                categoryId = "c1",
+                amountMinor = 750_000_000_00L, // ₱750,000,000.00
+                description = "Property purchase"
+            )
+        )
+
+        val summary = BudgetCalculator.calculateSummaryForBudget(budget, expenses)
+        assertEquals(750_000_000_00L, summary.totalSpent)
+        assertEquals(250_000_000_00L, summary.remaining)
+        assertEquals(0.75f, summary.percentUsed, 0.001f)
     }
 
     @Test

@@ -130,7 +130,6 @@
     <string name="editor_title_placeholder">Title</string>
     <string name="editor_paragraph_placeholder">Start writing</string>
     <string name="editor_heading_placeholder">Heading</string>
-    <string name="toolbar_checklist">Checklist</string>
     <string name="checkbox_mark_done">Mark done</string>
     <string name="checkbox_mark_not_done">Mark not done</string>
     <string name="insert_menu_button">Insert block</string>
@@ -144,4 +143,16 @@
     <string name="insert_checklist">Checklist</string>
     <string name="insert_divider">Divider</string>
     <string name="block_divider_label">Divider</string>
+
+    <!-- Budget dialog & money strings -->
+    <string name="dialog_create_budget_title">Create budget</string>
+    <string name="field_budget_name_label">Budget name</string>
+    <string name="field_budget_name_placeholder">e.g. Monthly Budget</string>
+    <string name="field_budget_amount_label">Amount (₱)</string>
+    <string name="field_budget_amount_placeholder">0.00</string>
+    <string name="budget_default_name">Monthly Budget</string>
+    <string name="error_invalid_amount">Enter a valid amount (e.g. 1,250.50)</string>
+    <string name="error_failed_to_create_budget">Failed to create budget</string>
+    <string name="budget_meter_semantics_spending">%1$d percent of %2$s spent</string>
+    <string name="budget_meter_semantics_no_budget">No budget set</string>
 </resources>

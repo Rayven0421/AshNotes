@@ -56,6 +56,20 @@ fun EditorBlockList(
 ) {
     val tapInteractionSource = remember { MutableInteractionSource() }
 
+    val handleBackspaceAtStart: (String, (String, Int) -> Unit) -> Unit = { blockId, onBackspaceCall ->
+        val result = TextBlockOperations.mergeOnBackspace(blocks, blockId, 0)
+        if (result.blocks.size < blocks.size) {
+            val targetFocusId = result.focusBlockId
+            if (targetFocusId != null && targetFocusId != blockId) {
+                try {
+                    focusRequesters[targetFocusId]?.requestFocus()
+                } catch (_: Throwable) {
+                }
+            }
+        }
+        onBackspaceCall(blockId, 0)
+    }
+
     Column(
         modifier = modifier.fillMaxWidth()
     ) {
@@ -86,7 +100,7 @@ fun EditorBlockList(
                                 onSplitParagraph(block.id, cursorIndex)
                             },
                             onBackspaceAtStart = {
-                                onBackspaceInParagraph(block.id, 0)
+                                handleBackspaceAtStart(block.id, onBackspaceInParagraph)
                             },
                             onPasteMultiLine = { pastedText, cursorIndex ->
                                 onPasteTextInParagraph(block.id, pastedText, cursorIndex)
@@ -109,7 +123,7 @@ fun EditorBlockList(
                                 onSplitHeading(block.id, cursorIndex)
                             },
                             onBackspaceAtStart = {
-                                onBackspaceInParagraph(block.id, 0)
+                                handleBackspaceAtStart(block.id, onBackspaceInParagraph)
                             },
                             onPasteMultiLine = { pastedText, cursorIndex ->
                                 onPasteTextInHeading(block.id, pastedText, cursorIndex)
@@ -135,7 +149,7 @@ fun EditorBlockList(
                                 onSplitChecklist(block.id, cursorIndex)
                             },
                             onBackspaceAtStart = {
-                                onBackspaceInChecklist(block.id, 0)
+                                handleBackspaceAtStart(block.id, onBackspaceInChecklist)
                             },
                             onPasteMultiLine = { pastedText, cursorIndex ->
                                 onPasteTextInChecklist(block.id, pastedText, cursorIndex)
@@ -158,7 +172,7 @@ fun EditorBlockList(
                                 onSplitParagraph(block.id, cursorIndex)
                             },
                             onBackspaceAtStart = {
-                                onBackspaceInParagraph(block.id, 0)
+                                handleBackspaceAtStart(block.id, onBackspaceInParagraph)
                             },
                             onPasteMultiLine = { pastedText, cursorIndex ->
                                 onPasteTextInParagraph(block.id, pastedText, cursorIndex)
@@ -182,7 +196,7 @@ fun EditorBlockList(
                                 onSplitParagraph(block.id, cursorIndex)
                             },
                             onBackspaceAtStart = {
-                                onBackspaceInParagraph(block.id, 0)
+                                handleBackspaceAtStart(block.id, onBackspaceInParagraph)
                             },
                             onPasteMultiLine = { pastedText, cursorIndex ->
                                 onPasteTextInParagraph(block.id, pastedText, cursorIndex)
@@ -205,7 +219,7 @@ fun EditorBlockList(
                                 onSplitParagraph(block.id, cursorIndex)
                             },
                             onBackspaceAtStart = {
-                                onBackspaceInParagraph(block.id, 0)
+                                handleBackspaceAtStart(block.id, onBackspaceInParagraph)
                             },
                             onPasteMultiLine = { pastedText, cursorIndex ->
                                 onPasteTextInParagraph(block.id, pastedText, cursorIndex)
@@ -219,7 +233,29 @@ fun EditorBlockList(
                     is Block.Divider -> {
                         DividerBlockItem(
                             block = block,
-                            onDelete = { onDeleteBlock(block.id) },
+                            onSelect = {
+                                focusRequester.requestFocus()
+                            },
+                            onDelete = {
+                                val result = TextBlockOperations.deleteBlock(blocks, block.id)
+                                if (result.blocks.size < blocks.size) {
+                                    val targetFocusId = result.focusBlockId
+                                    if (targetFocusId != null && targetFocusId != block.id) {
+                                        try {
+                                            focusRequesters[targetFocusId]?.requestFocus()
+                                        } catch (_: Throwable) {
+                                        }
+                                    }
+                                }
+                                onDeleteBlock(block.id)
+                            },
+                            onFocused = { cursorIndex ->
+                                onBlockFocusChanged(block.id)
+                                onBlockFocused(block.id, cursorIndex)
+                            },
+                            onBlockFocusChanged = { id ->
+                                onBlockFocusChanged(id)
+                            },
                             modifier = blockModifier
                         )
                     }

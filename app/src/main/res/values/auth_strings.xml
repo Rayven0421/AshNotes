@@ -1,0 +1,42 @@
+<resources>
+    <!-- Authentication strings -->
+    <string name="auth_login_title">Sign in</string>
+    <string name="auth_login_subtitle">Sign in to sync your notes and budgets.</string>
+    <string name="auth_register_title">Create account</string>
+    <string name="auth_register_subtitle">Register to sync your notes and budgets.</string>
+    <string name="auth_email_label">Email address</string>
+    <string name="auth_email_hint">name@example.com</string>
+    <string name="auth_password_label">Password</string>
+    <string name="auth_password_hint">At least 6 characters</string>
+    <string name="auth_confirm_password_label">Confirm password</string>
+    <string name="auth_confirm_password_hint">Re-enter password</string>
+    <string name="auth_action_sign_in">Sign in</string>
+    <string name="auth_action_register">Create account</string>
+    <string name="auth_continue_with_google">Continue with Google</string>
+    <string name="auth_switch_to_register">Dont have an account? Register</string>
+    <string name="auth_switch_to_login">Already have an account? Sign in</string>
+    <string name="auth_action_continue_local">Continue without an account</string>
+    <string name="auth_show_password">Show password</string>
+    <string name="auth_hide_password">Hide password</string>
+
+    <!-- Auth error copy per DESIGN.md section 10 -->
+    <string name="auth_error_invalid_email">Invalid email format. Check your email address.</string>
+    <string name="auth_error_password_too_short">Password is too weak. Use at least 6 characters.</string>
+    <string name="auth_error_passwords_dont_match">Passwords do not match. Check them and try again.</string>
+    <string name="auth_error_invalid_credentials">Wrong email or password. Check them and try again.</string>
+    <string name="auth_error_user_not_found">Account not found. Check your email or register.</string>
+    <string name="auth_error_email_already_in_use">An account with this email already exists. Sign in instead.</string>
+    <string name="auth_error_weak_password">Password is too weak. Use at least 6 characters.</string>
+    <string name="auth_error_network">No connection. Connect to the internet to sign in.</string>
+    <string name="auth_error_too_many_requests">Too many failed attempts. Try again later.</string>
+    <string name="auth_error_unknown">Something went wrong. Try again.</string>
+    <string name="auth_error_no_google_account">No Google account found on this device. Add an account and try again.</string>
+
+    <!-- Settings Account strings -->
+    <string name="settings_account_signed_in_desc">Signed in as %s</string>
+    <string name="settings_action_sign_in">Sign in</string>
+    <string name="settings_action_sign_out">Sign out</string>
+    <string name="dialog_sign_out_title">Sign out?</string>
+    <string name="dialog_sign_out_message">Are you sure you want to sign out? Your local data will be preserved.</string>
+    <string name="action_sign_out">Sign out</string>
+</resources>

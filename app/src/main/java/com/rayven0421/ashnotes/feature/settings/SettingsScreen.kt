@@ -28,20 +28,27 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rayven0421.ashnotes.R
+import com.rayven0421.ashnotes.core.common.UiState
 import com.rayven0421.ashnotes.core.designsystem.AshNotesTheme
 import com.rayven0421.ashnotes.core.designsystem.ScreenHeader
 import com.rayven0421.ashnotes.core.designsystem.dialog.AshConfirmDialog
 
 @Composable
 fun SettingsScreen(
+    onNavigateToLogin: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val scrollState = rememberScrollState()
     val snackbarHostState = remember { SnackbarHostState() }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showSignOutDialog by remember { mutableStateOf(false) }
     val dataClearedMsg = stringResource(R.string.snackbar_data_deleted)
+
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val settingsContent = (uiState as? UiState.Success)?.data ?: SettingsContent()
 
     LaunchedEffect(viewModel) {
         viewModel.userMessage.collect { msg ->
@@ -61,6 +68,21 @@ fun SettingsScreen(
                 viewModel.deleteLocalData(dataClearedMsg)
             },
             onDismiss = { showDeleteDialog = false }
+        )
+    }
+
+    if (showSignOutDialog) {
+        AshConfirmDialog(
+            title = stringResource(R.string.dialog_sign_out_title),
+            message = stringResource(R.string.dialog_sign_out_message),
+            confirmLabel = stringResource(R.string.action_sign_out),
+            cancelLabel = stringResource(R.string.action_cancel),
+            isDestructive = false,
+            onConfirm = {
+                showSignOutDialog = false
+                viewModel.signOut()
+            },
+            onDismiss = { showSignOutDialog = false }
         )
     }
 
@@ -96,10 +118,22 @@ fun SettingsScreen(
                 )
 
                 // 2. Account
+                val accountDesc = if (settingsContent.currentUser != null) {
+                    stringResource(R.string.settings_account_signed_in_desc, settingsContent.currentUser.email ?: "")
+                } else {
+                    stringResource(R.string.settings_account_desc)
+                }
                 SettingRow(
                     title = stringResource(R.string.settings_account_title),
-                    description = stringResource(R.string.settings_account_desc),
-                    isAvailable = false
+                    description = accountDesc,
+                    isAvailable = true,
+                    onClick = {
+                        if (settingsContent.currentUser != null) {
+                            showSignOutDialog = true
+                        } else {
+                            onNavigateToLogin()
+                        }
+                    }
                 )
                 HorizontalDivider(
                     color = AshNotesTheme.colors.line,

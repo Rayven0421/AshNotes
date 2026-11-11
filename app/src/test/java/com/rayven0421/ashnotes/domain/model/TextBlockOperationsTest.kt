@@ -471,4 +471,87 @@ class TextBlockOperationsTest {
         assertTrue(ensured[0] is Block.Divider)
         assertTrue(ensured[1] is Block.Paragraph)
     }
+
+    @Test
+    fun insertBlockBelow_whenTargetIsDivider_insertsBlockBelowDivider() {
+        val divider = Block.Divider(id = "d1", position = 0, createdAt = 1000L, updatedAt = 1000L)
+        val pAfter = Block.Paragraph(id = "p1", position = 1, createdAt = 1000L, updatedAt = 1000L, text = "End")
+        val blocks = listOf(divider, pAfter)
+
+        val result = TextBlockOperations.insertBlockBelow(blocks, "d1", Block.Quote::class, now = 2000L)
+
+        assertEquals(3, result.blocks.size)
+        assertTrue(result.blocks[0] is Block.Divider)
+        assertTrue(result.blocks[1] is Block.Quote)
+        assertTrue(result.blocks[2] is Block.Paragraph)
+        assertEquals(result.blocks[1].id, result.focusBlockId)
+    }
+
+    @Test
+    fun insertBlockBelow_belowCheckedChecklist_createsUncheckedChecklist() {
+        val checkedChecklist = Block.Checklist(
+            id = "c1",
+            position = 0,
+            createdAt = 1000L,
+            updatedAt = 1000L,
+            text = "Checked item",
+            isChecked = true
+        )
+        val result = TextBlockOperations.insertBlockBelow(
+            listOf(checkedChecklist),
+            "c1",
+            Block.Checklist::class,
+            now = 2000L
+        )
+
+        assertEquals(2, result.blocks.size)
+        val inserted = result.blocks[1] as Block.Checklist
+        assertEquals(false, inserted.isChecked)
+    }
+
+    @Test
+    fun insertBlockBelow_insertedBlockCreatedAtEqualsNow() {
+        val targetBlock = Block.Checklist(
+            id = "c1",
+            position = 0,
+            createdAt = 1000L,
+            updatedAt = 1000L,
+            text = "Checked item",
+            isChecked = true
+        )
+        val now = 2000L
+        val result = TextBlockOperations.insertBlockBelow(
+            listOf(targetBlock),
+            "c1",
+            Block.Checklist::class,
+            now = now
+        )
+
+        assertEquals(2, result.blocks.size)
+        val inserted = result.blocks[1] as Block.Checklist
+        assertEquals(now, inserted.createdAt)
+        assertTrue(inserted.createdAt != targetBlock.createdAt)
+    }
+
+    @Test
+    fun convertTo_checklistToChecklist_preservesIsChecked() {
+        val checkedChecklist = Block.Checklist(
+            id = "c1",
+            position = 0,
+            createdAt = 1000L,
+            updatedAt = 1000L,
+            text = "Checked item",
+            isChecked = true
+        )
+        val converted = TextBlockOperations.convertTo(
+            checkedChecklist,
+            Block.Checklist::class,
+            now = 2000L
+        )
+
+        assertEquals(1, converted.size)
+        val resultBlock = converted[0] as Block.Checklist
+        assertEquals(true, resultBlock.isChecked)
+        assertEquals(1000L, resultBlock.createdAt)
+    }
 }

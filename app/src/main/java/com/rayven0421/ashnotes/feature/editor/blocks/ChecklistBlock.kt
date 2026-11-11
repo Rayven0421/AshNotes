@@ -6,7 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -89,12 +88,12 @@ fun ChecklistBlockItem(
 
             Box(
                 modifier = Modifier
-                    .width(EditorTokens.ChecklistSlotWidth)
+                    .width(EditorTokens.ListGutterWidth)
                     .fillMaxHeight()
                     .testTag("checklist_checkbox")
                     .clickable(
                         interactionSource = interactionSource,
-                        indication = ripple(bounded = true, radius = EditorTokens.ChecklistSlotWidth / 2),
+                        indication = ripple(bounded = true, radius = EditorTokens.ListGutterWidth / 2),
                         onClick = onToggleChecked
                     )
                     .semantics {
@@ -125,8 +124,6 @@ fun ChecklistBlockItem(
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.width(AshNotesTheme.spacing.extraSmall))
 
             BlockTextField(
                 blockId = block.id,

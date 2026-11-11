@@ -1,15 +1,19 @@
 package com.rayven0421.ashnotes.di
 
+import com.rayven0421.ashnotes.data.repository.AuthRepositoryImpl
 import com.rayven0421.ashnotes.data.repository.BudgetRepositoryImpl
 import com.rayven0421.ashnotes.data.repository.CategoryRepositoryImpl
 import com.rayven0421.ashnotes.data.repository.ExpenseRepositoryImpl
 import com.rayven0421.ashnotes.data.repository.NoteRepositoryImpl
+import com.rayven0421.ashnotes.data.repository.SessionRepositoryImpl
 import com.rayven0421.ashnotes.data.repository.UserPreferencesRepositoryImpl
 import com.rayven0421.ashnotes.data.repository.WorkspaceRepositoryImpl
+import com.rayven0421.ashnotes.domain.repository.AuthRepository
 import com.rayven0421.ashnotes.domain.repository.BudgetRepository
 import com.rayven0421.ashnotes.domain.repository.CategoryRepository
 import com.rayven0421.ashnotes.domain.repository.ExpenseRepository
 import com.rayven0421.ashnotes.domain.repository.NoteRepository
+import com.rayven0421.ashnotes.domain.repository.SessionRepository
 import com.rayven0421.ashnotes.domain.repository.UserPreferencesRepository
 import com.rayven0421.ashnotes.domain.repository.WorkspaceRepository
 import dagger.Binds
@@ -57,4 +61,16 @@ abstract class RepositoryModule {
     abstract fun bindCategoryRepository(
         impl: CategoryRepositoryImpl
     ): CategoryRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindAuthRepository(
+        impl: AuthRepositoryImpl
+    ): AuthRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSessionRepository(
+        impl: SessionRepositoryImpl
+    ): SessionRepository
 }

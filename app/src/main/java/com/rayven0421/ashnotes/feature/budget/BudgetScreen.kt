@@ -1,6 +1,8 @@
 package com.rayven0421.ashnotes.feature.budget
 
+import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,85 +19,237 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import com.rayven0421.ashnotes.R
+import com.rayven0421.ashnotes.core.common.MoneyUtils
 import com.rayven0421.ashnotes.core.common.UiState
 import com.rayven0421.ashnotes.core.designsystem.AshNotesTheme
+import com.rayven0421.ashnotes.core.designsystem.AshSmallShape
 import com.rayven0421.ashnotes.core.designsystem.BudgetMeter
 import com.rayven0421.ashnotes.core.designsystem.ScreenHeader
+import com.rayven0421.ashnotes.domain.model.Category
+import com.rayven0421.ashnotes.domain.model.Expense
+import com.rayven0421.ashnotes.feature.budget.components.CreateBudgetDialog
+import com.rayven0421.ashnotes.feature.budget.components.DeleteExpenseConfirmDialog
+import com.rayven0421.ashnotes.feature.budget.components.ExpenseDialog
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 
 @Composable
 fun BudgetScreen(
     modifier: Modifier = Modifier,
     uiState: UiState<BudgetContent> = UiState.Empty,
-    // TODO(phase-4): Wire "Create budget" creation flow when Budget entity exists in Phase 4
+    showCreateDialog: Boolean = false,
+    showExpenseDialog: Boolean = false,
+    editingExpense: Expense? = null,
+    showDeleteConfirmDialog: Expense? = null,
+    categories: List<Category> = emptyList(),
+    uiEvent: Flow<BudgetUiEvent> = emptyFlow(),
     onCreateBudgetClick: () -> Unit = {},
-    // TODO(phase-4): Wire "Add expense" creation flow when Expense entity exists in Phase 4
-    onAddExpenseClick: () -> Unit = {}
+    onDismissCreateDialog: () -> Unit = {},
+    onConfirmCreateBudget: (name: String, amountMinor: Long) -> Unit = { _, _ -> },
+    onAddExpenseClick: () -> Unit = {},
+    onEditExpenseClick: (Expense) -> Unit = {},
+    onDismissExpenseDialog: () -> Unit = {},
+    onSaveExpense: (categoryId: String, amountMinor: Long, date: Long, note: String) -> Unit = { _, _, _, _ -> },
+    onRequestDeleteExpense: (Expense) -> Unit = {},
+    onDismissDeleteConfirmDialog: () -> Unit = {},
+    onConfirmDeleteExpense: () -> Unit = {},
+    onUndoDeleteExpense: (Expense) -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(scrollState)
-            .padding(horizontal = AshNotesTheme.spacing.screenHorizontal),
-        verticalArrangement = Arrangement.spacedBy(AshNotesTheme.spacing.large)
-    ) {
-        ScreenHeader(title = stringResource(R.string.budget_screen_title))
+    LaunchedEffect(uiEvent) {
+        uiEvent.collect { event ->
+            when (event) {
+                is BudgetUiEvent.ShowExpenseDeletedSnackbar -> {
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.toast_expense_deleted),
+                        Toast.LENGTH_SHORT
+                    ).show()
 
-        when (uiState) {
-            is UiState.Empty, is UiState.Loading -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(AshNotesTheme.spacing.emptyStateHeight),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(AshNotesTheme.spacing.large)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.budget_empty_message),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = AshNotesTheme.colors.textMuted
-                        )
-                        OutlinedButton(onClick = onCreateBudgetClick) {
-                            Text(text = stringResource(R.string.budget_empty_action))
-                        }
+                    val result = snackbarHostState.showSnackbar(
+                        message = context.getString(R.string.snackbar_expense_deleted),
+                        actionLabel = context.getString(R.string.action_undo),
+                        duration = SnackbarDuration.Short
+                    )
+                    if (result == SnackbarResult.ActionPerformed) {
+                        onUndoDeleteExpense(event.expense)
                     }
                 }
             }
-            is UiState.Error -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(AshNotesTheme.spacing.errorStateHeight),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = uiState.message,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = AshNotesTheme.colors.over
-                    )
+        }
+    }
+
+    if (showCreateDialog) {
+        CreateBudgetDialog(
+            onConfirm = { name, amountMinor ->
+                onConfirmCreateBudget(name, amountMinor)
+            },
+            onDismiss = onDismissCreateDialog
+        )
+    }
+
+    if (showExpenseDialog) {
+        ExpenseDialog(
+            categories = categories,
+            expenseToEdit = editingExpense,
+            onConfirm = onSaveExpense,
+            onDismiss = onDismissExpenseDialog,
+            onDeleteExpense = {
+                editingExpense?.let { onRequestDeleteExpense(it) }
+            }
+        )
+    }
+
+    if (showDeleteConfirmDialog != null) {
+        DeleteExpenseConfirmDialog(
+            onConfirmDelete = onConfirmDeleteExpense,
+            onDismiss = onDismissDeleteConfirmDialog
+        )
+    }
+
+    Scaffold(
+        modifier = modifier,
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        containerColor = Color.Transparent
+    ) { scaffoldPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(scaffoldPadding)
+                .verticalScroll(scrollState)
+                .padding(horizontal = AshNotesTheme.spacing.screenHorizontal),
+            verticalArrangement = Arrangement.spacedBy(AshNotesTheme.spacing.large)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                ScreenHeader(title = stringResource(R.string.budget_screen_title))
+
+                if (uiState is UiState.Success) {
+                    OutlinedButton(
+                        onClick = onAddExpenseClick,
+                        shape = AshSmallShape
+                    ) {
+                        Text(text = stringResource(R.string.budget_action_add_expense))
+                    }
                 }
             }
-            is UiState.Success -> {
-                val content = uiState.data
-                BudgetHero(content = content)
 
-                if (content.categories.isNotEmpty()) {
-                    CategorySpendingList(categories = content.categories)
+            when (uiState) {
+                is UiState.Empty, is UiState.Loading -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(AshNotesTheme.spacing.emptyStateHeight),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(AshNotesTheme.spacing.large)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.budget_empty_message),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = AshNotesTheme.colors.textMuted
+                            )
+                            OutlinedButton(
+                                onClick = onCreateBudgetClick,
+                                shape = AshSmallShape
+                            ) {
+                                Text(text = stringResource(R.string.budget_empty_action))
+                            }
+                        }
+                    }
                 }
+                is UiState.Error -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(AshNotesTheme.spacing.errorStateHeight),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = uiState.message,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = AshNotesTheme.colors.over
+                        )
+                    }
+                }
+                is UiState.Success -> {
+                    val content = uiState.data
+                    BudgetHero(content = content)
 
-                if (content.transactionGroups.isNotEmpty()) {
-                    TransactionGroupList(groups = content.transactionGroups)
+                    if (content.categories.isNotEmpty()) {
+                        CategorySpendingList(categories = content.categories)
+                    }
+
+                    if (content.transactionGroups.isNotEmpty()) {
+                        TransactionGroupList(
+                            groups = content.transactionGroups,
+                            onTransactionClick = onEditExpenseClick
+                        )
+                    } else {
+                        EmptyTransactionsBlock(onAddExpenseClick = onAddExpenseClick)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyTransactionsBlock(onAddExpenseClick: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(AshNotesTheme.spacing.medium)
+    ) {
+        Text(
+            text = stringResource(R.string.budget_transactions_section),
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = AshNotesTheme.spacing.medium),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(AshNotesTheme.spacing.medium)
+            ) {
+                Text(
+                    text = stringResource(R.string.budget_empty_transactions),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = AshNotesTheme.colors.textMuted
+                )
+                OutlinedButton(
+                    onClick = onAddExpenseClick,
+                    shape = AshSmallShape
+                ) {
+                    Text(text = stringResource(R.string.budget_action_add_expense))
                 }
             }
         }
@@ -120,8 +274,8 @@ private fun BudgetHero(content: BudgetContent) {
 
         val headlineText = when {
             isZeroBudget -> stringResource(R.string.budget_zero_label)
-            isOverBudget -> stringResource(R.string.budget_over_label, formatMoney(content.spentMinor - content.totalMinor))
-            else -> formatMoney(remainingMinor)
+            isOverBudget -> stringResource(R.string.budget_over_label, MoneyUtils.formatMoney(content.spentMinor - content.totalMinor))
+            else -> MoneyUtils.formatMoney(remainingMinor)
         }
 
         val headlineColor = when {
@@ -142,17 +296,16 @@ private fun BudgetHero(content: BudgetContent) {
         )
 
         val summaryText = when {
-            isZeroBudget -> stringResource(R.string.budget_summary, formatMoney(0L), formatMoney(0L), 0)
-            isOverBudget -> stringResource(
-                R.string.budget_summary_over,
-                formatMoney(content.spentMinor),
-                formatMoney(content.spentMinor - content.totalMinor),
+            isZeroBudget -> stringResource(
+                R.string.budget_summary,
+                MoneyUtils.formatMoney(0L),
+                MoneyUtils.formatMoney(0L),
                 content.daysLeft
             )
             else -> stringResource(
                 R.string.budget_summary,
-                formatMoney(content.spentMinor),
-                formatMoney(content.totalMinor),
+                MoneyUtils.formatMoney(content.spentMinor),
+                MoneyUtils.formatMoney(content.totalMinor),
                 content.daysLeft
             )
         }
@@ -200,7 +353,7 @@ private fun CategoryRow(category: CategorySpendingItem) {
                 color = MaterialTheme.colorScheme.onBackground
             )
             Text(
-                text = formatMoney(category.spentMinor),
+                text = MoneyUtils.formatMoney(category.spentMinor),
                 style = MaterialTheme.typography.bodyLarge.copy(fontFeatureSettings = "tnum"),
                 color = MaterialTheme.colorScheme.onBackground
             )
@@ -231,7 +384,10 @@ private fun CategoryRow(category: CategorySpendingItem) {
 }
 
 @Composable
-private fun TransactionGroupList(groups: List<TransactionGroup>) {
+private fun TransactionGroupList(
+    groups: List<TransactionGroup>,
+    onTransactionClick: (Expense) -> Unit
+) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(AshNotesTheme.spacing.medium)
@@ -243,13 +399,16 @@ private fun TransactionGroupList(groups: List<TransactionGroup>) {
         )
 
         groups.forEach { group ->
-            TransactionGroupBlock(group = group)
+            TransactionGroupBlock(group = group, onTransactionClick = onTransactionClick)
         }
     }
 }
 
 @Composable
-private fun TransactionGroupBlock(group: TransactionGroup) {
+private fun TransactionGroupBlock(
+    group: TransactionGroup,
+    onTransactionClick: (Expense) -> Unit
+) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(AshNotesTheme.spacing.small)
@@ -264,13 +423,14 @@ private fun TransactionGroupBlock(group: TransactionGroup) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .clickable { onTransactionClick(item.expense) }
                     .padding(vertical = AshNotesTheme.spacing.small),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = item.description,
+                        text = item.description.ifBlank { item.categoryName },
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onBackground
                     )
@@ -282,7 +442,7 @@ private fun TransactionGroupBlock(group: TransactionGroup) {
                 }
                 Spacer(modifier = Modifier.width(AshNotesTheme.spacing.default))
                 Text(
-                    text = formatMoney(item.amountMinor),
+                    text = MoneyUtils.formatMoney(item.amountMinor),
                     style = MaterialTheme.typography.bodyLarge.copy(fontFeatureSettings = "tnum"),
                     color = MaterialTheme.colorScheme.onBackground,
                     textAlign = TextAlign.End
@@ -296,12 +456,4 @@ private fun TransactionGroupBlock(group: TransactionGroup) {
             }
         }
     }
-}
-
-private fun formatMoney(amountMinor: Long): String {
-    val absAmount = Math.abs(amountMinor)
-    val major = absAmount / 100
-    val minor = absAmount % 100
-    val formatted = String.format(java.util.Locale.getDefault(), "₱%,d.%02d", major, minor)
-    return if (amountMinor < 0) "-$formatted" else formatted
 }

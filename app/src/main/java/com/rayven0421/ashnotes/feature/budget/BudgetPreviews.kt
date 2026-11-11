@@ -4,9 +4,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.rayven0421.ashnotes.core.common.UiState
 import com.rayven0421.ashnotes.core.designsystem.AshNotesTheme
+import com.rayven0421.ashnotes.domain.model.Expense
 
 internal object SampleBudgetData {
+    private const val now = 1700000000000L
+
     val successState = BudgetContent(
+        budgetId = "b1",
         title = "Monthly Budget",
         totalMinor = 500000L,
         spentMinor = 325000L,
@@ -22,20 +26,45 @@ internal object SampleBudgetData {
             TransactionGroup(
                 dateLabel = "Today",
                 transactions = listOf(
-                    TransactionItem("t1", "Dining & Coffee", "Artisan Coffee Roasters", 45000L),
-                    TransactionItem("t2", "Groceries & Food", "Organic Supermarket", 125000L)
+                    TransactionItem(
+                        id = "t1",
+                        categoryId = "c3",
+                        categoryName = "Dining & Coffee",
+                        description = "Artisan Coffee Roasters",
+                        amountMinor = 45000L,
+                        date = now,
+                        expense = Expense(id = "t1", budgetId = "b1", categoryId = "c3", amountMinor = 45000L, description = "Artisan Coffee Roasters", date = now)
+                    ),
+                    TransactionItem(
+                        id = "t2",
+                        categoryId = "c1",
+                        categoryName = "Groceries & Food",
+                        description = "Organic Supermarket",
+                        amountMinor = 125000L,
+                        date = now,
+                        expense = Expense(id = "t2", budgetId = "b1", categoryId = "c1", amountMinor = 125000L, description = "Organic Supermarket", date = now)
+                    )
                 )
             ),
             TransactionGroup(
                 dateLabel = "Yesterday",
                 transactions = listOf(
-                    TransactionItem("t3", "Utilities & Internet", "Fiber Internet Bill", 280000L)
+                    TransactionItem(
+                        id = "t3",
+                        categoryId = "c2",
+                        categoryName = "Utilities & Internet",
+                        description = "Fiber Internet Bill",
+                        amountMinor = 280000L,
+                        date = now - 86400000L,
+                        expense = Expense(id = "t3", budgetId = "b1", categoryId = "c2", amountMinor = 280000L, description = "Fiber Internet Bill", date = now - 86400000L)
+                    )
                 )
             )
         )
     )
 
     val overBudgetState = BudgetContent(
+        budgetId = "b1",
         title = "Monthly Budget",
         totalMinor = 500000L,
         spentMinor = 532000L,
@@ -50,13 +79,22 @@ internal object SampleBudgetData {
             TransactionGroup(
                 dateLabel = "Today",
                 transactions = listOf(
-                    TransactionItem("t1", "Groceries & Food", "Bulk Wholesale Grocery", 320000L)
+                    TransactionItem(
+                        id = "t1",
+                        categoryId = "c1",
+                        categoryName = "Groceries & Food",
+                        description = "Bulk Wholesale Grocery",
+                        amountMinor = 320000L,
+                        date = now,
+                        expense = Expense(id = "t1", budgetId = "b1", categoryId = "c1", amountMinor = 320000L, description = "Bulk Wholesale Grocery", date = now)
+                    )
                 )
             )
         )
     )
 
     val zeroBudgetState = BudgetContent(
+        budgetId = "b1",
         title = "Unset Budget",
         totalMinor = 0L,
         spentMinor = 0L,

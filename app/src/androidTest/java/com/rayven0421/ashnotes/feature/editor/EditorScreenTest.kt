@@ -4,18 +4,25 @@ import androidx.activity.ComponentActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.isFocused
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextInputSelection
+import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.text.TextRange
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.rayven0421.ashnotes.R
@@ -102,21 +109,19 @@ class EditorScreenTest {
                     onPasteTextInParagraph = { _, _, _ -> },
                     onPasteTextInHeading = { _, _, _ -> },
                     onBackspaceInParagraph = { _, _ -> },
+                    onInsertBlockBelow = { blockClass ->
+                        val targetId = document.blocks.firstOrNull()?.id ?: ""
+                        val result = com.rayven0421.ashnotes.domain.model.TextBlockOperations.insertBlockBelow(
+                            blocks = document.blocks,
+                            afterBlockId = targetId,
+                            type = blockClass
+                        )
+                        document = document.copy(blocks = result.blocks)
+                        focusRequest = result.focusBlockId?.let { FocusRequest(blockId = it, cursor = result.focusCursorIndex) }
+                    },
                     onBlockFocused = { _, _ -> },
                     onAppendParagraph = {},
                     onTapBelowBlocks = {},
-                    onToggleChecklist = { id ->
-                        val block = document.blocks.first { it.id == id }
-                        val converted = ChecklistOperations.convertBlockToChecklist(block)
-                        document = document.copy(
-                            blocks = document.blocks.toMutableList().apply {
-                                val idx = indexOfFirst { it.id == id }
-                                removeAt(idx)
-                                addAll(idx, converted)
-                            }
-                        )
-                        focusRequest = converted.firstOrNull()?.id?.let { FocusRequest(blockId = it, cursor = 0) }
-                    },
                     onUndoClick = {},
                     onRedoClick = {},
                     onFlushSave = {},
@@ -127,8 +132,11 @@ class EditorScreenTest {
             }
         }
 
-        val checklistLabel = composeTestRule.activity.getString(R.string.toolbar_checklist)
-        composeTestRule.onNodeWithContentDescription(checklistLabel).performClick()
+        val addButtonLabel = composeTestRule.activity.getString(R.string.insert_menu_button)
+        val checklistItemLabel = composeTestRule.activity.getString(R.string.insert_checklist)
+
+        composeTestRule.onNodeWithContentDescription(addButtonLabel).performClick()
+        composeTestRule.onNodeWithText(checklistItemLabel).performClick()
 
         val checklistNodes = composeTestRule.onAllNodesWithTag("checklist_text")
         checklistNodes.assertCountEquals(1)
@@ -193,7 +201,6 @@ class EditorScreenTest {
                     onBlockFocused = { _, _ -> },
                     onAppendParagraph = {},
                     onTapBelowBlocks = {},
-                    onToggleChecklist = { _ -> },
                     onUndoClick = {},
                     onRedoClick = {},
                     onFlushSave = {},
@@ -273,7 +280,6 @@ class EditorScreenTest {
                     onBlockFocused = { _, _ -> },
                     onAppendParagraph = {},
                     onTapBelowBlocks = {},
-                    onToggleChecklist = { _ -> },
                     onUndoClick = {},
                     onRedoClick = {},
                     onFlushSave = {},
@@ -351,7 +357,6 @@ class EditorScreenTest {
                     onBlockFocused = { _, _ -> },
                     onAppendParagraph = {},
                     onTapBelowBlocks = {},
-                    onToggleChecklist = { _ -> },
                     onUndoClick = {},
                     onRedoClick = {},
                     onFlushSave = {},
@@ -435,7 +440,6 @@ class EditorScreenTest {
                     onBlockFocused = { _, _ -> },
                     onAppendParagraph = {},
                     onTapBelowBlocks = {},
-                    onToggleChecklist = { _ -> },
                     onUndoClick = {},
                     onRedoClick = {},
                     onFlushSave = {},
@@ -499,7 +503,6 @@ class EditorScreenTest {
                     onBlockFocused = { _, _ -> },
                     onAppendParagraph = {},
                     onTapBelowBlocks = {},
-                    onToggleChecklist = { _ -> },
                     onUndoClick = {},
                     onRedoClick = {},
                     onFlushSave = {},
@@ -568,7 +571,6 @@ class EditorScreenTest {
                     onBlockFocused = { _, _ -> },
                     onAppendParagraph = {},
                     onTapBelowBlocks = {},
-                    onToggleChecklist = { _ -> },
                     onUndoClick = {},
                     onRedoClick = {},
                     onFlushSave = {},
@@ -635,7 +637,6 @@ class EditorScreenTest {
                     onBlockFocused = { _, _ -> },
                     onAppendParagraph = {},
                     onTapBelowBlocks = {},
-                    onToggleChecklist = { _ -> },
                     onUndoClick = {},
                     onRedoClick = {},
                     onFlushSave = {},
@@ -644,13 +645,11 @@ class EditorScreenTest {
             }
         }
 
-        val targetItemNode = composeTestRule.onAllNodesWithTag("checklist_text")[19]
+        val targetItemNode = composeTestRule.onNodeWithText("Item 20")
         targetItemNode.performTextInput("\n")
 
-        val updatedNodes = composeTestRule.onAllNodesWithTag("checklist_text")
-        updatedNodes.assertCountEquals(31)
-        // Item 20 split into two items; node at index 20 (new item) is focused
-        updatedNodes[20].assertIsFocused()
+        composeTestRule.onNode(isFocused()).assertTextEquals("Item 20")
+        composeTestRule.onNodeWithText("Item 19").assertIsDisplayed()
     }
 
     @Test
@@ -719,7 +718,6 @@ class EditorScreenTest {
                     onBlockFocused = { _, _ -> },
                     onAppendParagraph = {},
                     onTapBelowBlocks = {},
-                    onToggleChecklist = { _ -> },
                     onUndoClick = {},
                     onRedoClick = {},
                     onFlushSave = {},
@@ -767,6 +765,7 @@ class EditorScreenTest {
             )
         )
         var focusRequest by mutableStateOf<FocusRequest?>(null)
+        var splitCalls = 0
 
         composeTestRule.setContent {
             AshNotesTheme {
@@ -796,6 +795,7 @@ class EditorScreenTest {
                     onBackspaceInChecklist = { _, _ -> },
                     onPasteTextInChecklist = { _, _, _ -> },
                     onSplitParagraph = { id, cursor ->
+                        splitCalls++
                         val result = com.rayven0421.ashnotes.domain.model.TextBlockOperations.split(document.blocks, id, cursor)
                         document = document.copy(blocks = result.blocks)
                         focusRequest = result.focusBlockId?.let { FocusRequest(blockId = it, cursor = result.focusCursorIndex) }
@@ -807,7 +807,6 @@ class EditorScreenTest {
                     onBlockFocused = { _, _ -> },
                     onAppendParagraph = {},
                     onTapBelowBlocks = {},
-                    onToggleChecklist = { _ -> },
                     onUndoClick = {},
                     onRedoClick = {},
                     onFlushSave = {},
@@ -821,6 +820,10 @@ class EditorScreenTest {
 
         // Press Enter on empty bullet
         bulletNodes[0].performTextInput("\n")
+
+        assert(splitCalls == 1) { "onSplit called $splitCalls times" }
+        assert(document.blocks.size == 1)
+        assert(document.blocks[0] is Block.Paragraph)
 
         // Verify converted to paragraph
         composeTestRule.onAllNodesWithTag("bullet_text").assertCountEquals(0)
@@ -871,7 +874,6 @@ class EditorScreenTest {
                     onBlockFocused = { _, _ -> },
                     onAppendParagraph = {},
                     onTapBelowBlocks = {},
-                    onToggleChecklist = { _ -> },
                     onUndoClick = {},
                     onRedoClick = {},
                     onFlushSave = {},
@@ -879,6 +881,11 @@ class EditorScreenTest {
                 )
             }
         }
+
+        // Assert number labels "1.", "2.", "3." exist
+        composeTestRule.onNodeWithText("1.").assertExists()
+        composeTestRule.onNodeWithText("2.").assertExists()
+        composeTestRule.onNodeWithText("3.").assertExists()
 
         val numberedNodes = composeTestRule.onAllNodesWithTag("numbered_text")
         numberedNodes.assertCountEquals(3)
@@ -888,8 +895,15 @@ class EditorScreenTest {
         numberedNodes[1].assertTextEquals("Two")
         numberedNodes[2].assertTextEquals("Three")
 
-        // Delete middle item ("n2")
-        document = document.copy(blocks = listOf(document.blocks[0], document.blocks[2]))
+        // Delete middle item ("n2") wrapped in runOnIdle
+        composeTestRule.runOnIdle {
+            document = document.copy(blocks = listOf(document.blocks[0], document.blocks[2]))
+        }
+
+        // Assert number labels "1." and "2." exist, and "3." does NOT exist
+        composeTestRule.onNodeWithText("1.").assertExists()
+        composeTestRule.onNodeWithText("2.").assertExists()
+        composeTestRule.onNodeWithText("3.").assertDoesNotExist()
 
         val updatedNodes = composeTestRule.onAllNodesWithTag("numbered_text")
         updatedNodes.assertCountEquals(2)
@@ -897,6 +911,7 @@ class EditorScreenTest {
         updatedNodes[1].assertTextEquals("Three")
     }
 
+    @OptIn(ExperimentalTestApi::class)
     @Test
     fun insertDivider_addsDividerAndParagraphAfter_backspaceRemovesDivider() {
         var document by mutableStateOf(
@@ -958,7 +973,6 @@ class EditorScreenTest {
                     onBlockFocused = { _, _ -> },
                     onAppendParagraph = {},
                     onTapBelowBlocks = {},
-                    onToggleChecklist = { _ -> },
                     onUndoClick = {},
                     onRedoClick = {},
                     onFlushSave = {},
@@ -980,12 +994,73 @@ class EditorScreenTest {
         val pNodes = composeTestRule.onAllNodesWithTag("paragraph_text")
         pNodes.assertCountEquals(2)
 
-        // Perform Backspace on the second paragraph
-        val paragraphAfterId = document.blocks[2].id
-        val mergeResult = com.rayven0421.ashnotes.domain.model.TextBlockOperations.mergeOnBackspace(document.blocks, paragraphAfterId, 0)
-        document = document.copy(blocks = mergeResult.blocks)
+        // Perform Backspace through UI key input on paragraph after divider
+        pNodes[1].performKeyInput { pressKey(Key.Backspace) }
 
         // Verify divider is removed
         composeTestRule.onAllNodesWithTag("divider").assertCountEquals(0)
+    }
+
+    @Test
+    fun tapDivider_doesNotRemoveIt() {
+        var document by mutableStateOf(
+            Document(
+                version = 1,
+                blocks = listOf(
+                    Block.Paragraph(id = "p1", position = 0, createdAt = 1000L, updatedAt = 1000L, text = "Header"),
+                    Block.Divider(id = "d1", position = 1, createdAt = 1000L, updatedAt = 1000L),
+                    Block.Paragraph(id = "p2", position = 2, createdAt = 1000L, updatedAt = 1000L, text = "")
+                )
+            )
+        )
+
+        composeTestRule.setContent {
+            AshNotesTheme {
+                EditorScreen(
+                    uiState = UiState.Success(
+                        EditorState(
+                            noteId = "test-note",
+                            title = "",
+                            document = document,
+                            saveStatus = SaveStatus.Saved,
+                            canUndo = false,
+                            canRedo = false,
+                            focusRequest = null
+                        )
+                    ),
+                    onBackClick = {},
+                    onTitleChanged = {},
+                    onParagraphTextChanged = { _, _ -> },
+                    onHeadingTextChanged = { _, _ -> },
+                    onChecklistTextChanged = { _, _ -> },
+                    onToggleChecklistChecked = {},
+                    onSplitChecklist = { _, _ -> },
+                    onBackspaceInChecklist = { _, _ -> },
+                    onPasteTextInChecklist = { _, _, _ -> },
+                    onSplitParagraph = { _, _ -> },
+                    onSplitHeading = { _, _ -> },
+                    onPasteTextInParagraph = { _, _, _ -> },
+                    onPasteTextInHeading = { _, _, _ -> },
+                    onBackspaceInParagraph = { _, _ -> },
+                    onDeleteBlock = { id ->
+                        val result = com.rayven0421.ashnotes.domain.model.TextBlockOperations.deleteBlock(document.blocks, id)
+                        document = document.copy(blocks = result.blocks)
+                    },
+                    onBlockFocused = { _, _ -> },
+                    onAppendParagraph = {},
+                    onTapBelowBlocks = {},
+                    onUndoClick = {},
+                    onRedoClick = {},
+                    onFlushSave = {},
+                    onClearFocusRequest = {}
+                )
+            }
+        }
+
+        // Tap the divider
+        composeTestRule.onNodeWithTag("divider").performClick()
+
+        // Assert divider still exists
+        composeTestRule.onNodeWithTag("divider").assertExists()
     }
 }

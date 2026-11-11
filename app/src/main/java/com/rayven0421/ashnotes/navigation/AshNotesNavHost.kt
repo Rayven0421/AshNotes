@@ -1,5 +1,7 @@
 package com.rayven0421.ashnotes.navigation
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -15,6 +17,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -28,6 +31,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.rayven0421.ashnotes.R
 import com.rayven0421.ashnotes.core.designsystem.AshNotesTheme
+import com.rayven0421.ashnotes.feature.authentication.LoginScreen
+import com.rayven0421.ashnotes.feature.authentication.RegisterScreen
 import com.rayven0421.ashnotes.feature.budget.BudgetScreen
 import com.rayven0421.ashnotes.feature.budget.BudgetViewModel
 import com.rayven0421.ashnotes.feature.editor.EditorScreen
@@ -51,8 +56,24 @@ sealed class TopLevelDestination(
 
 @Composable
 fun AshNotesNavHost(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    mainViewModel: MainViewModel = hiltViewModel()
 ) {
+    val authGateState by mainViewModel.authGateState.collectAsStateWithLifecycle()
+    val gateState = authGateState
+
+    if (gateState is AuthGateState.Loading) {
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+        )
+        return
+    }
+
+    val isUserOrLocal = (gateState as AuthGateState.Authenticated).isUserOrLocal
+    val initialRoute: Screen = if (isUserOrLocal) Screen.Home else Screen.Login
+
     val navController = rememberNavController()
     val destinations = listOf(
         TopLevelDestination.Home,
@@ -64,6 +85,17 @@ fun AshNotesNavHost(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination
     val showBottomBar = destinations.any { it.route::class.qualifiedName == currentRoute?.route }
+
+    LaunchedEffect(isUserOrLocal) {
+        if (!isUserOrLocal) {
+            val currentRouteName = navController.currentBackStackEntry?.destination?.route
+            if (currentRouteName != Screen.Login::class.qualifiedName && currentRouteName != Screen.Register::class.qualifiedName) {
+                navController.navigate(Screen.Login) {
+                    popUpTo(0) { inclusive = true }
+                }
+            }
+        }
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -113,9 +145,45 @@ fun AshNotesNavHost(
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = Screen.Home,
+            startDestination = initialRoute,
             modifier = Modifier.fillMaxSize()
         ) {
+            composable<Screen.Login> {
+                LoginScreen(
+                    onNavigateToRegister = {
+                        navController.navigate(Screen.Register)
+                    },
+                    onLoginSuccess = {
+                        navController.navigate(Screen.Home) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
+                    onContinueWithoutAccount = {
+                        navController.navigate(Screen.Home) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                )
+            }
+            composable<Screen.Register> {
+                RegisterScreen(
+                    onNavigateToLogin = {
+                        navController.navigate(Screen.Login) {
+                            popUpTo(Screen.Login) { inclusive = true }
+                        }
+                    },
+                    onRegisterSuccess = {
+                        navController.navigate(Screen.Home) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
+                    onContinueWithoutAccount = {
+                        navController.navigate(Screen.Home) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                )
+            }
             composable<Screen.Home> {
                 val viewModel: HomeViewModel = hiltViewModel()
                 val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -180,16 +248,63 @@ fun AshNotesNavHost(
             composable<Screen.Budget> {
                 val viewModel: BudgetViewModel = hiltViewModel()
                 val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                val showCreateDialog by viewModel.showCreateDialog.collectAsStateWithLifecycle()
+                val showExpenseDialog by viewModel.showExpenseDialog.collectAsStateWithLifecycle()
+                val editingExpense by viewModel.editingExpense.collectAsStateWithLifecycle()
+                val showDeleteConfirmDialog by viewModel.showDeleteConfirmDialog.collectAsStateWithLifecycle()
+                val categories by viewModel.categories.collectAsStateWithLifecycle()
+
                 BudgetScreen(
                     uiState = uiState,
+                    showCreateDialog = showCreateDialog,
+                    showExpenseDialog = showExpenseDialog,
+                    editingExpense = editingExpense,
+                    showDeleteConfirmDialog = showDeleteConfirmDialog,
+                    categories = categories,
+                    uiEvent = viewModel.uiEvent,
                     modifier = Modifier.padding(innerPadding),
                     onCreateBudgetClick = {
-                        viewModel.createBudget()
+                        viewModel.openCreateBudgetDialog()
+                    },
+                    onDismissCreateDialog = {
+                        viewModel.dismissCreateBudgetDialog()
+                    },
+                    onConfirmCreateBudget = { name, amountMinor ->
+                        viewModel.createBudget(name, amountMinor)
+                    },
+                    onAddExpenseClick = {
+                        viewModel.openAddExpenseDialog()
+                    },
+                    onEditExpenseClick = { expense ->
+                        viewModel.openEditExpenseDialog(expense)
+                    },
+                    onDismissExpenseDialog = {
+                        viewModel.dismissExpenseDialog()
+                    },
+                    onSaveExpense = { categoryId, amountMinor, date, note ->
+                        viewModel.saveExpense(categoryId, amountMinor, date, note)
+                    },
+                    onRequestDeleteExpense = { expense ->
+                        viewModel.requestDeleteExpense(expense)
+                    },
+                    onDismissDeleteConfirmDialog = {
+                        viewModel.dismissDeleteConfirmDialog()
+                    },
+                    onConfirmDeleteExpense = {
+                        viewModel.confirmDeleteExpense()
+                    },
+                    onUndoDeleteExpense = { expense ->
+                        viewModel.undoDeleteExpense(expense)
                     }
                 )
             }
             composable<Screen.Settings> {
                 SettingsScreen(
+                    onNavigateToLogin = {
+                        navController.navigate(Screen.Login) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
                     modifier = Modifier.padding(innerPadding)
                 )
             }
@@ -218,7 +333,6 @@ fun AshNotesNavHost(
                     onBlockFocused = { blockId, cursorIndex -> viewModel.onBlockFocused(blockId, cursorIndex) },
                     onAppendParagraph = { viewModel.appendParagraphIfNeeded() },
                     onTapBelowBlocks = { viewModel.onTapBelowBlocks() },
-                    onToggleChecklist = { blockId -> viewModel.toggleChecklistForBlock(blockId) },
                     onUndoClick = { viewModel.undo() },
                     onRedoClick = { viewModel.redo() },
                     onFlushSave = { viewModel.flushSave() },
