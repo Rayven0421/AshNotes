@@ -111,6 +111,19 @@ class BudgetViewModel @Inject constructor(
                         )
                     }
 
+                    val categorySpendings = BudgetCalculator.calculateCategorySpending(
+                        expenses = activeExpenses,
+                        categories = categoryList
+                    )
+                    val categoryItems = categorySpendings.map { cs ->
+                        CategorySpendingItem(
+                            categoryId = cs.categoryId,
+                            name = cs.name,
+                            spentMinor = cs.spentMinor,
+                            proportion = cs.proportion
+                        )
+                    }
+
                     UiState.Success(
                         BudgetContent(
                             budgetId = activeBudget.id,
@@ -119,7 +132,7 @@ class BudgetViewModel @Inject constructor(
                             spentMinor = totalSpent,
                             daysLeft = daysLeft,
                             paceFraction = paceFraction,
-                            categories = emptyList(),
+                            categories = categoryItems,
                             transactionGroups = transactionGroups
                         )
                     ) as UiState<BudgetContent>

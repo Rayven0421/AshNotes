@@ -4,7 +4,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rayven0421.ashnotes.R
 import com.rayven0421.ashnotes.core.common.UiState
+import com.rayven0421.ashnotes.core.common.calculatePeriodMetrics
 import com.rayven0421.ashnotes.core.common.formatNoteDate
+import com.rayven0421.ashnotes.domain.model.Budget
+import com.rayven0421.ashnotes.domain.model.BudgetCalculator
+import com.rayven0421.ashnotes.domain.model.Expense
+import com.rayven0421.ashnotes.domain.repository.BudgetRepository
+import com.rayven0421.ashnotes.domain.repository.ExpenseRepository
 import com.rayven0421.ashnotes.domain.repository.NoteRepository
 import com.rayven0421.ashnotes.domain.repository.WorkspaceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -14,8 +20,10 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -26,6 +34,8 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val noteRepository: NoteRepository,
+    private val budgetRepository: BudgetRepository,
+    private val expenseRepository: ExpenseRepository,
     private val workspaceRepository: WorkspaceRepository
 ) : ViewModel() {
 
@@ -34,9 +44,24 @@ class HomeViewModel @Inject constructor(
 
     val uiState: StateFlow<UiState<HomeContent>> = workspaceRepository.observeActiveWorkspaceId()
         .flatMapLatest { workspaceId ->
-            noteRepository.observeNotes(workspaceId)
+            combine(
+                noteRepository.observeNotes(workspaceId),
+                budgetRepository.observeBudgets(workspaceId)
+            ) { notes, budgets ->
+                notes to budgets
+            }
         }
-        .map { notes ->
+        .flatMapLatest { (notes, budgets) ->
+            val activeBudget = budgets.firstOrNull { !it.isArchived }
+            if (activeBudget == null) {
+                flowOf(Triple(notes, null as Budget?, emptyList<Expense>()))
+            } else {
+                expenseRepository.observeExpenses(activeBudget.id).map { expenses ->
+                    Triple(notes, activeBudget, expenses)
+                }
+            }
+        }
+        .map { (notes, activeBudget, expenses) ->
             val recentNotes = notes
                 .filter { !it.isArchived }
                 .sortedByDescending { it.updatedAt }
@@ -50,13 +75,29 @@ class HomeViewModel @Inject constructor(
                     )
                 }
 
+            val hasBudget = activeBudget != null
+            val spentMinor = if (activeBudget != null) {
+                BudgetCalculator.calculateTotalSpent(expenses)
+            } else {
+                0L
+            }
+            val totalMinor = activeBudget?.amountMinor ?: 0L
+            val paceFraction = if (activeBudget != null) {
+                calculatePeriodMetrics(
+                    activeBudget.startDate,
+                    activeBudget.endDate
+                ).second
+            } else {
+                0f
+            }
+
             UiState.Success(
                 HomeContent(
                     greetingResId = getGreetingByTimeOfDayResId(),
-                    spentMinor = 0L,
-                    totalMinor = 0L,
-                    paceFraction = 0f,
-                    hasBudget = false,
+                    spentMinor = spentMinor,
+                    totalMinor = totalMinor,
+                    paceFraction = paceFraction,
+                    hasBudget = hasBudget,
                     notes = recentNotes,
                     activity = emptyList(),
                     syncStatusResId = R.string.home_sync_local_only

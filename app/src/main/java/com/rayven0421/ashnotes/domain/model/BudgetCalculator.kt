@@ -6,9 +6,48 @@ data class BudgetSummary(
     val percentUsed: Float
 )
 
+data class CategorySpending(
+    val categoryId: String,
+    val name: String,
+    val spentMinor: Long,
+    val proportion: Float
+)
+
 object BudgetCalculator {
     fun calculateTotalSpent(expenses: List<Expense>): Long {
         return expenses.filter { it.deletedAt == null }.sumOf { it.amountMinor }
+    }
+
+    fun calculateCategorySpending(
+        expenses: List<Expense>,
+        categories: List<Category>
+    ): List<CategorySpending> {
+        val activeExpenses = expenses.filter { it.deletedAt == null }
+        val totalSpent = calculateTotalSpent(activeExpenses)
+        val categoryMap = categories.associateBy { it.id }
+
+        val grouped = activeExpenses.groupBy { it.categoryId }
+        val spendings = grouped.map { (categoryId, exps) ->
+            val category = categoryMap[categoryId]
+            val categoryName = category?.name ?: "Other"
+            val spent = exps.sumOf { it.amountMinor }
+            val proportion = if (totalSpent > 0L) {
+                (spent.toDouble() / totalSpent.toDouble()).toFloat()
+            } else {
+                0.0f
+            }
+            CategorySpending(
+                categoryId = categoryId,
+                name = categoryName,
+                spentMinor = spent,
+                proportion = proportion
+            )
+        }
+
+        return spendings.sortedWith(
+            compareByDescending<CategorySpending> { it.spentMinor }
+                .thenBy { it.name }
+        )
     }
 
     fun calculateSummary(budgetAmountMinor: Long, totalSpent: Long): BudgetSummary {

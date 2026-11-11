@@ -30,7 +30,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -127,9 +126,9 @@ fun BudgetScreen(
     }
 
     Scaffold(
-        modifier = modifier,
+        modifier = modifier.fillMaxSize(),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        containerColor = Color.Transparent
+        containerColor = MaterialTheme.colorScheme.background
     ) { scaffoldPadding ->
         Column(
             modifier = Modifier
@@ -139,22 +138,7 @@ fun BudgetScreen(
                 .padding(horizontal = AshNotesTheme.spacing.screenHorizontal),
             verticalArrangement = Arrangement.spacedBy(AshNotesTheme.spacing.large)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                ScreenHeader(title = stringResource(R.string.budget_screen_title))
-
-                if (uiState is UiState.Success) {
-                    OutlinedButton(
-                        onClick = onAddExpenseClick,
-                        shape = AshSmallShape
-                    ) {
-                        Text(text = stringResource(R.string.budget_action_add_expense))
-                    }
-                }
-            }
+            ScreenHeader(title = stringResource(R.string.budget_screen_title))
 
             when (uiState) {
                 is UiState.Empty, is UiState.Loading -> {
@@ -198,7 +182,10 @@ fun BudgetScreen(
                 }
                 is UiState.Success -> {
                     val content = uiState.data
-                    BudgetHero(content = content)
+                    BudgetHero(
+                        content = content,
+                        onAddExpenseClick = onAddExpenseClick
+                    )
 
                     if (content.categories.isNotEmpty()) {
                         CategorySpendingList(categories = content.categories)
@@ -214,6 +201,8 @@ fun BudgetScreen(
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(AshNotesTheme.spacing.huge))
         }
     }
 }
@@ -257,7 +246,10 @@ private fun EmptyTransactionsBlock(onAddExpenseClick: () -> Unit) {
 }
 
 @Composable
-private fun BudgetHero(content: BudgetContent) {
+private fun BudgetHero(
+    content: BudgetContent,
+    onAddExpenseClick: () -> Unit
+) {
     val isOverBudget = content.totalMinor > 0 && content.spentMinor > content.totalMinor
     val isZeroBudget = content.totalMinor == 0L
     val remainingMinor = content.totalMinor - content.spentMinor
@@ -295,26 +287,43 @@ private fun BudgetHero(content: BudgetContent) {
             paceFraction = content.paceFraction
         )
 
-        val summaryText = when {
-            isZeroBudget -> stringResource(
-                R.string.budget_summary,
-                MoneyUtils.formatMoney(0L),
-                MoneyUtils.formatMoney(0L),
-                content.daysLeft
-            )
-            else -> stringResource(
-                R.string.budget_summary,
-                MoneyUtils.formatMoney(content.spentMinor),
-                MoneyUtils.formatMoney(content.totalMinor),
-                content.daysLeft
-            )
-        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            val summaryText = when {
+                isZeroBudget -> stringResource(
+                    R.string.budget_summary,
+                    MoneyUtils.formatMoney(0L),
+                    MoneyUtils.formatMoney(0L),
+                    content.daysLeft
+                )
+                else -> stringResource(
+                    R.string.budget_summary,
+                    MoneyUtils.formatMoney(content.spentMinor),
+                    MoneyUtils.formatMoney(content.totalMinor),
+                    content.daysLeft
+                )
+            }
 
-        Text(
-            text = summaryText,
-            style = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = "tnum"),
-            color = AshNotesTheme.colors.textMuted
-        )
+            Text(
+                text = summaryText,
+                style = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = "tnum"),
+                color = AshNotesTheme.colors.textMuted
+            )
+
+            if (!isZeroBudget) {
+                Text(
+                    text = stringResource(R.string.budget_action_add_expense),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = AshNotesTheme.colors.ember,
+                    modifier = Modifier
+                        .clickable(onClick = onAddExpenseClick)
+                        .padding(vertical = AshNotesTheme.spacing.extraSmall)
+                )
+            }
+        }
     }
 }
 
@@ -352,11 +361,22 @@ private fun CategoryRow(category: CategorySpendingItem) {
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onBackground
             )
-            Text(
-                text = MoneyUtils.formatMoney(category.spentMinor),
-                style = MaterialTheme.typography.bodyLarge.copy(fontFeatureSettings = "tnum"),
-                color = MaterialTheme.colorScheme.onBackground
-            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(AshNotesTheme.spacing.small),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val percentInt = (category.proportion * 100).toInt()
+                Text(
+                    text = stringResource(R.string.budget_category_percent, percentInt),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AshNotesTheme.colors.textMuted
+                )
+                Text(
+                    text = MoneyUtils.formatMoney(category.spentMinor),
+                    style = MaterialTheme.typography.bodyLarge.copy(fontFeatureSettings = "tnum"),
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+            }
         }
         Box(
             modifier = Modifier

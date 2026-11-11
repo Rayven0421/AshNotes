@@ -174,4 +174,63 @@ class BudgetCalculatorTest {
         assertEquals(7000L, summary.remaining)
         assertEquals(0.3f, summary.percentUsed, 0.001f)
     }
+
+    @Test
+    fun categorySpending_rankedOrderAndStableTies() {
+        val categories = listOf(
+            Category(id = "c1", name = "Zebra", icon = "tag", color = "#000000"),
+            Category(id = "c2", name = "Food", icon = "tag", color = "#000000"),
+            Category(id = "c3", name = "Bills", icon = "tag", color = "#000000")
+        )
+        val expenses = listOf(
+            Expense(budgetId = "b1", categoryId = "c2", amountMinor = 5000L, description = "Groceries"),
+            Expense(budgetId = "b1", categoryId = "c1", amountMinor = 2000L, description = "Zoo"),
+            Expense(budgetId = "b1", categoryId = "c3", amountMinor = 5000L, description = "Electric")
+        )
+
+        val spending = BudgetCalculator.calculateCategorySpending(expenses, categories)
+        assertEquals(3, spending.size)
+        assertEquals("Bills", spending[0].name)
+        assertEquals(5000L, spending[0].spentMinor)
+        assertEquals("Food", spending[1].name)
+        assertEquals(5000L, spending[1].spentMinor)
+        assertEquals("Zebra", spending[2].name)
+        assertEquals(2000L, spending[2].spentMinor)
+    }
+
+    @Test
+    fun categorySpending_noExpenses_returnsEmpty() {
+        val categories = listOf(
+            Category(id = "c1", name = "Food", icon = "tag", color = "#000000")
+        )
+        val spending = BudgetCalculator.calculateCategorySpending(emptyList(), categories)
+        assertEquals(0, spending.size)
+    }
+
+    @Test
+    fun categorySpending_deletedRowsExcluded() {
+        val categories = listOf(
+            Category(id = "c1", name = "Food", icon = "tag", color = "#000000"),
+            Category(id = "c2", name = "Transport", icon = "tag", color = "#000000")
+        )
+        val expenses = listOf(
+            Expense(budgetId = "b1", categoryId = "c1", amountMinor = 3000L, description = "Lunch"),
+            Expense(budgetId = "b1", categoryId = "c2", amountMinor = 4000L, description = "Taxi", deletedAt = 12345L)
+        )
+
+        val spending = BudgetCalculator.calculateCategorySpending(expenses, categories)
+        assertEquals(1, spending.size)
+        assertEquals("Food", spending[0].name)
+        assertEquals(3000L, spending[0].spentMinor)
+        assertEquals(1.0f, spending[0].proportion, 0.001f)
+    }
+
+    @Test
+    fun calculateSummary_noDivisionByZero() {
+        val summaryZero = BudgetCalculator.calculateSummary(0L, 0L)
+        assertEquals(0.0f, summaryZero.percentUsed, 0.001f)
+
+        val summaryOver = BudgetCalculator.calculateSummary(0L, 1000L)
+        assertEquals(1.0f, summaryOver.percentUsed, 0.001f)
+    }
 }

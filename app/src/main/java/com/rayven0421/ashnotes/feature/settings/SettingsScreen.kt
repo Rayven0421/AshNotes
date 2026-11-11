@@ -187,7 +187,7 @@ fun SettingsScreen(
                 // 7. About (Active / Informational)
                 SettingRow(
                     title = stringResource(R.string.settings_about_title),
-                    description = stringResource(R.string.settings_about_desc),
+                    description = stringResource(R.string.settings_about_desc, com.rayven0421.ashnotes.BuildConfig.VERSION_NAME),
                     isAvailable = true
                 )
             }
