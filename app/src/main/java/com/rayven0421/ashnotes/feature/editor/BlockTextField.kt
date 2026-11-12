@@ -87,10 +87,17 @@ fun BlockTextField(
     onFocusStateChanged: ((Boolean) -> Unit)? = null
 ) {
     var isFocused by remember { mutableStateOf(false) }
-    var lastEmittedText by remember(blockId) { mutableStateOf<String?>(blockText) }
+    var recentEmittedTexts by remember(blockId) { mutableStateOf(listOf(blockText)) }
+    var lastAppliedFocusToken by remember(blockId) { mutableStateOf<Long?>(null) }
 
-    val initialSelection = if (focusRequest != null) {
-        TextRange(focusRequest.cursor.coerceIn(0, blockText.length))
+    val effectiveFocusRequest = if (focusRequest != null && focusRequest.token != lastAppliedFocusToken) {
+        focusRequest
+    } else {
+        null
+    }
+
+    val initialSelection = if (effectiveFocusRequest != null) {
+        TextRange(effectiveFocusRequest.cursor.coerceIn(0, blockText.length))
     } else {
         TextRange(blockText.length)
     }
@@ -105,18 +112,29 @@ fun BlockTextField(
     }
 
     LaunchedEffect(blockText, focusRequest?.token) {
+        val req = if (focusRequest != null && focusRequest.token != lastAppliedFocusToken) {
+            focusRequest
+        } else {
+            null
+        }
+
         val decision = TextSyncEngine.computeTextSync(
             currentLocalText = textFieldValue.text,
             currentCaret = textFieldValue.selection.start,
             incomingBlockText = blockText,
-            lastEmittedText = lastEmittedText,
-            focusRequest = focusRequest
+            recentEmittedTexts = recentEmittedTexts,
+            focusRequest = req
         )
+        recentEmittedTexts = decision.updatedRecentEmittedTexts
+
         if (decision.shouldResync) {
             textFieldValue = TextFieldValue(
                 text = decision.targetText,
                 selection = TextRange(decision.targetCaret)
             )
+            if (req != null) {
+                lastAppliedFocusToken = req.token
+            }
         }
     }
 
@@ -127,21 +145,21 @@ fun BlockTextField(
                 is TextChange.Plain -> {
                     textFieldValue = newValue
                     if (change.newText != blockText) {
-                        lastEmittedText = change.newText
+                        recentEmittedTexts = (recentEmittedTexts + change.newText).takeLast(16)
                         onTextChanged(change.newText)
                     }
                     onFocused(newValue.selection.start)
                 }
                 is TextChange.Enter -> {
                     if (change.textBefore != blockText) {
-                        lastEmittedText = change.textBefore
+                        recentEmittedTexts = (recentEmittedTexts + change.textBefore).takeLast(16)
                         onTextChanged(change.textBefore)
                     }
                     onSplit(change.cursor)
                 }
                 is TextChange.Paste -> {
                     if (change.textBefore != blockText) {
-                        lastEmittedText = change.textBefore
+                        recentEmittedTexts = (recentEmittedTexts + change.textBefore).takeLast(16)
                         onTextChanged(change.textBefore)
                     }
                     onPaste(change.inserted, change.cursor)

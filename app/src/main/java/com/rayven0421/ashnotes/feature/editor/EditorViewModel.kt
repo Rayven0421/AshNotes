@@ -564,7 +564,8 @@ class EditorViewModel @Inject constructor(
         val currentDocumentJson = json.encodeToString(Document.serializer(), currentState.document)
 
         if (currentState.title == lastSavedTitle && currentDocumentJson == lastSavedContentJson) {
-            _uiState.value = UiState.Success(currentState.copy(saveStatus = SaveStatus.Saved))
+            val latestState = (_uiState.value as? UiState.Success)?.data ?: currentState
+            _uiState.value = UiState.Success(latestState.copy(saveStatus = SaveStatus.Saved))
             return
         }
 
@@ -581,10 +582,29 @@ class EditorViewModel @Inject constructor(
             lastSavedTitle = currentState.title
             lastSavedContentJson = currentDocumentJson
 
-            _uiState.value = UiState.Success(currentState.copy(saveStatus = SaveStatus.Saved, errorMessage = null))
+            val latestState = (_uiState.value as? UiState.Success)?.data ?: currentState
+            val latestDocJson = json.encodeToString(Document.serializer(), latestState.document)
+
+            if (latestState.title != currentState.title || latestDocJson != currentDocumentJson) {
+                _uiState.value = UiState.Success(
+                    latestState.copy(
+                        saveStatus = SaveStatus.Saving,
+                        errorMessage = null
+                    )
+                )
+                autoSaveTrigger.tryEmit(Unit)
+            } else {
+                _uiState.value = UiState.Success(
+                    latestState.copy(
+                        saveStatus = SaveStatus.Saved,
+                        errorMessage = null
+                    )
+                )
+            }
         } catch (e: Exception) {
+            val latestState = (_uiState.value as? UiState.Success)?.data ?: currentState
             _uiState.value = UiState.Success(
-                currentState.copy(
+                latestState.copy(
                     saveStatus = SaveStatus.Error,
                     errorMessage = e.localizedMessage ?: "Failed to save note"
                 )

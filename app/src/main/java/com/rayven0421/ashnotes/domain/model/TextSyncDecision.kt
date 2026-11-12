@@ -3,7 +3,8 @@ package com.rayven0421.ashnotes.domain.model
 data class TextSyncDecision(
     val shouldResync: Boolean,
     val targetText: String,
-    val targetCaret: Int
+    val targetCaret: Int,
+    val updatedRecentEmittedTexts: List<String>
 )
 
 object TextSyncEngine {
@@ -11,7 +12,7 @@ object TextSyncEngine {
         currentLocalText: String,
         currentCaret: Int,
         incomingBlockText: String,
-        lastEmittedText: String?,
+        recentEmittedTexts: List<String>,
         focusRequest: FocusRequest?
     ): TextSyncDecision {
         if (focusRequest != null) {
@@ -19,15 +20,28 @@ object TextSyncEngine {
             return TextSyncDecision(
                 shouldResync = true,
                 targetText = incomingBlockText,
-                targetCaret = targetCaret
+                targetCaret = targetCaret,
+                updatedRecentEmittedTexts = recentEmittedTexts
             )
         }
 
-        if (incomingBlockText == currentLocalText || incomingBlockText == lastEmittedText) {
+        if (incomingBlockText == currentLocalText) {
             return TextSyncDecision(
                 shouldResync = false,
                 targetText = currentLocalText,
-                targetCaret = currentCaret
+                targetCaret = currentCaret,
+                updatedRecentEmittedTexts = recentEmittedTexts
+            )
+        }
+
+        val matchIndex = recentEmittedTexts.indexOf(incomingBlockText)
+        if (matchIndex != -1) {
+            val updatedList = recentEmittedTexts.drop(matchIndex + 1)
+            return TextSyncDecision(
+                shouldResync = false,
+                targetText = currentLocalText,
+                targetCaret = currentCaret,
+                updatedRecentEmittedTexts = updatedList
             )
         }
 
@@ -35,7 +49,8 @@ object TextSyncEngine {
         return TextSyncDecision(
             shouldResync = true,
             targetText = incomingBlockText,
-            targetCaret = targetCaret
+            targetCaret = targetCaret,
+            updatedRecentEmittedTexts = recentEmittedTexts
         )
     }
 }
