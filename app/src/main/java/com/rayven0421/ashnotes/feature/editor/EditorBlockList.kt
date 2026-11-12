@@ -21,14 +21,9 @@ import com.rayven0421.ashnotes.R
 import com.rayven0421.ashnotes.core.designsystem.AshNotesTheme
 import com.rayven0421.ashnotes.domain.model.Block
 import com.rayven0421.ashnotes.domain.model.FocusRequest
+import com.rayven0421.ashnotes.domain.model.TextBlock
 import com.rayven0421.ashnotes.domain.model.TextBlockOperations
-import com.rayven0421.ashnotes.feature.editor.blocks.BulletBlockItem
-import com.rayven0421.ashnotes.feature.editor.blocks.ChecklistBlockItem
 import com.rayven0421.ashnotes.feature.editor.blocks.DividerBlockItem
-import com.rayven0421.ashnotes.feature.editor.blocks.HeadingBlockItem
-import com.rayven0421.ashnotes.feature.editor.blocks.NumberedBlockItem
-import com.rayven0421.ashnotes.feature.editor.blocks.ParagraphBlockItem
-import com.rayven0421.ashnotes.feature.editor.blocks.QuoteBlockItem
 
 @Composable
 fun EditorBlockList(
@@ -63,7 +58,7 @@ fun EditorBlockList(
             if (targetFocusId != null && targetFocusId != blockId) {
                 try {
                     focusRequesters[targetFocusId]?.requestFocus()
-                } catch (_: Throwable) {
+                } catch (_: IllegalStateException) {
                 }
             }
         }
@@ -86,148 +81,55 @@ fun EditorBlockList(
                 val itemFocusRequest = if (focusRequest?.blockId == block.id) focusRequest else null
 
                 when (block) {
-                    is Block.Paragraph -> {
-                        val isOnlyBlockAndEmpty = blocks.size == 1 && block.text.isEmpty()
-                        ParagraphBlockItem(
+                    is TextBlock -> {
+                        val isOnlyBlockAndEmpty = blocks.size == 1 && block is Block.Paragraph && block.text.isEmpty()
+                        val number = if (block is Block.NumberedItem) TextBlockOperations.numberFor(blocks, index) else 0
+
+                        val onTextChanged: (String) -> Unit
+                        val onSplit: (Int) -> Unit
+                        val onBackspaceAtStartCall: () -> Unit
+                        val onPaste: (String, Int) -> Unit
+                        val onToggleChecked: (() -> Unit)?
+
+                        when (block) {
+                            is Block.Checklist -> {
+                                onTextChanged = { newText -> onChecklistTextChanged(block.id, newText) }
+                                onSplit = { cursorIndex -> onSplitChecklist(block.id, cursorIndex) }
+                                onBackspaceAtStartCall = { handleBackspaceAtStart(block.id, onBackspaceInChecklist) }
+                                onPaste = { pastedText, cursorIndex -> onPasteTextInChecklist(block.id, pastedText, cursorIndex) }
+                                onToggleChecked = { onToggleChecklistChecked(block.id) }
+                            }
+                            is Block.Heading -> {
+                                onTextChanged = { newText -> onHeadingTextChanged(block.id, newText) }
+                                onSplit = { cursorIndex -> onSplitHeading(block.id, cursorIndex) }
+                                onBackspaceAtStartCall = { handleBackspaceAtStart(block.id, onBackspaceInParagraph) }
+                                onPaste = { pastedText, cursorIndex -> onPasteTextInHeading(block.id, pastedText, cursorIndex) }
+                                onToggleChecked = null
+                            }
+                            else -> {
+                                onTextChanged = { newText -> onParagraphTextChanged(block.id, newText) }
+                                onSplit = { cursorIndex -> onSplitParagraph(block.id, cursorIndex) }
+                                onBackspaceAtStartCall = { handleBackspaceAtStart(block.id, onBackspaceInParagraph) }
+                                onPaste = { pastedText, cursorIndex -> onPasteTextInParagraph(block.id, pastedText, cursorIndex) }
+                                onToggleChecked = null
+                            }
+                        }
+
+                        TextBlockRow(
                             block = block,
+                            modifier = blockModifier,
+                            number = number,
                             isOnlyBlockAndEmpty = isOnlyBlockAndEmpty,
                             focusRequest = itemFocusRequest,
-                            modifier = blockModifier,
-                            onTextChanged = { newText ->
-                                onParagraphTextChanged(block.id, newText)
-                            },
-                            onEnterPressed = { cursorIndex ->
-                                onSplitParagraph(block.id, cursorIndex)
-                            },
-                            onBackspaceAtStart = {
-                                handleBackspaceAtStart(block.id, onBackspaceInParagraph)
-                            },
-                            onPasteMultiLine = { pastedText, cursorIndex ->
-                                onPasteTextInParagraph(block.id, pastedText, cursorIndex)
-                            },
+                            onTextChanged = onTextChanged,
+                            onEnterPressed = onSplit,
+                            onBackspaceAtStart = onBackspaceAtStartCall,
+                            onPasteMultiLine = onPaste,
                             onFocused = { cursorIndex ->
                                 onBlockFocusChanged(block.id)
                                 onBlockFocused(block.id, cursorIndex)
-                            }
-                        )
-                    }
-                    is Block.Heading -> {
-                        HeadingBlockItem(
-                            block = block,
-                            focusRequest = itemFocusRequest,
-                            modifier = blockModifier,
-                            onTextChanged = { newText ->
-                                onHeadingTextChanged(block.id, newText)
                             },
-                            onEnterPressed = { cursorIndex ->
-                                onSplitHeading(block.id, cursorIndex)
-                            },
-                            onBackspaceAtStart = {
-                                handleBackspaceAtStart(block.id, onBackspaceInParagraph)
-                            },
-                            onPasteMultiLine = { pastedText, cursorIndex ->
-                                onPasteTextInHeading(block.id, pastedText, cursorIndex)
-                            },
-                            onFocused = { cursorIndex ->
-                                onBlockFocusChanged(block.id)
-                                onBlockFocused(block.id, cursorIndex)
-                            }
-                        )
-                    }
-                    is Block.Checklist -> {
-                        ChecklistBlockItem(
-                            block = block,
-                            focusRequest = itemFocusRequest,
-                            modifier = blockModifier,
-                            onToggleChecked = {
-                                onToggleChecklistChecked(block.id)
-                            },
-                            onTextChanged = { newText ->
-                                onChecklistTextChanged(block.id, newText)
-                            },
-                            onEnterPressed = { cursorIndex ->
-                                onSplitChecklist(block.id, cursorIndex)
-                            },
-                            onBackspaceAtStart = {
-                                handleBackspaceAtStart(block.id, onBackspaceInChecklist)
-                            },
-                            onPasteMultiLine = { pastedText, cursorIndex ->
-                                onPasteTextInChecklist(block.id, pastedText, cursorIndex)
-                            },
-                            onFocused = { cursorIndex ->
-                                onBlockFocusChanged(block.id)
-                                onBlockFocused(block.id, cursorIndex)
-                            }
-                        )
-                    }
-                    is Block.BulletItem -> {
-                        BulletBlockItem(
-                            block = block,
-                            focusRequest = itemFocusRequest,
-                            modifier = blockModifier,
-                            onTextChanged = { newText ->
-                                onParagraphTextChanged(block.id, newText)
-                            },
-                            onEnterPressed = { cursorIndex ->
-                                onSplitParagraph(block.id, cursorIndex)
-                            },
-                            onBackspaceAtStart = {
-                                handleBackspaceAtStart(block.id, onBackspaceInParagraph)
-                            },
-                            onPasteMultiLine = { pastedText, cursorIndex ->
-                                onPasteTextInParagraph(block.id, pastedText, cursorIndex)
-                            },
-                            onFocused = { cursorIndex ->
-                                onBlockFocusChanged(block.id)
-                                onBlockFocused(block.id, cursorIndex)
-                            }
-                        )
-                    }
-                    is Block.NumberedItem -> {
-                        NumberedBlockItem(
-                            block = block,
-                            number = TextBlockOperations.numberFor(blocks, index),
-                            focusRequest = itemFocusRequest,
-                            modifier = blockModifier,
-                            onTextChanged = { newText ->
-                                onParagraphTextChanged(block.id, newText)
-                            },
-                            onEnterPressed = { cursorIndex ->
-                                onSplitParagraph(block.id, cursorIndex)
-                            },
-                            onBackspaceAtStart = {
-                                handleBackspaceAtStart(block.id, onBackspaceInParagraph)
-                            },
-                            onPasteMultiLine = { pastedText, cursorIndex ->
-                                onPasteTextInParagraph(block.id, pastedText, cursorIndex)
-                            },
-                            onFocused = { cursorIndex ->
-                                onBlockFocusChanged(block.id)
-                                onBlockFocused(block.id, cursorIndex)
-                            }
-                        )
-                    }
-                    is Block.Quote -> {
-                        QuoteBlockItem(
-                            block = block,
-                            focusRequest = itemFocusRequest,
-                            modifier = blockModifier,
-                            onTextChanged = { newText ->
-                                onParagraphTextChanged(block.id, newText)
-                            },
-                            onEnterPressed = { cursorIndex ->
-                                onSplitParagraph(block.id, cursorIndex)
-                            },
-                            onBackspaceAtStart = {
-                                handleBackspaceAtStart(block.id, onBackspaceInParagraph)
-                            },
-                            onPasteMultiLine = { pastedText, cursorIndex ->
-                                onPasteTextInParagraph(block.id, pastedText, cursorIndex)
-                            },
-                            onFocused = { cursorIndex ->
-                                onBlockFocusChanged(block.id)
-                                onBlockFocused(block.id, cursorIndex)
-                            }
+                            onToggleChecked = onToggleChecked
                         )
                     }
                     is Block.Divider -> {
@@ -243,7 +145,7 @@ fun EditorBlockList(
                                     if (targetFocusId != null && targetFocusId != block.id) {
                                         try {
                                             focusRequesters[targetFocusId]?.requestFocus()
-                                        } catch (_: Throwable) {
+                                        } catch (_: IllegalStateException) {
                                         }
                                     }
                                 }
