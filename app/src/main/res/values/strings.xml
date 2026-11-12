@@ -37,7 +37,7 @@
     <string name="settings_security_title">Security</string>
     <string name="settings_security_desc">Device protection (Passcode lock coming later)</string>
     <string name="settings_about_title">About</string>
-    <string name="settings_about_desc">AshNotes v1.0.0 • Offline-first notes &amp; budget tracker</string>
+    <string name="settings_about_desc">AshNotes v%1$s (%2$s) • Offline-first notes &amp; budget tracker</string>
     <string name="settings_delete_data_title">Delete local data</string>
     <string name="settings_delete_data_desc">Wipe all local notes, budgets, expenses, and settings</string>
     <string name="dialog_delete_data_title">Delete all local data?</string>

@@ -58,6 +58,41 @@ android {
         debug {
             isMinifyEnabled = false
             isShrinkResources = false
+            versionNameSuffix = "-debug"
+            signingConfig = signingConfigs.getByName("release")
+        }
+
+        create("alpha") {
+            initWith(getByName("debug"))
+            matchingFallbacks += listOf("debug")
+            isDebuggable = true
+            isMinifyEnabled = true
+            isShrinkResources = true
+            versionNameSuffix = "-alpha"
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            signingConfig = signingConfigs.getByName("release")
+        }
+
+        create("staging") {
+            initWith(getByName("debug"))
+            matchingFallbacks += listOf("debug")
+            versionNameSuffix = "-staging"
+            signingConfig = signingConfigs.getByName("release")
+        }
+
+        create("beta") {
+            initWith(getByName("release"))
+            matchingFallbacks += listOf("release")
+            isMinifyEnabled = true
+            isShrinkResources = true
+            versionNameSuffix = "-beta"
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
             signingConfig = signingConfigs.getByName("release")
         }
 
