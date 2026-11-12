@@ -260,6 +260,7 @@ fun AshNotesNavHost(
                 val viewModel: BudgetViewModel = hiltViewModel()
                 val uiState by viewModel.uiState.collectAsStateWithLifecycle()
                 val showCreateDialog by viewModel.showCreateDialog.collectAsStateWithLifecycle()
+                val showEditDialog by viewModel.showEditDialog.collectAsStateWithLifecycle()
                 val showExpenseDialog by viewModel.showExpenseDialog.collectAsStateWithLifecycle()
                 val editingExpense by viewModel.editingExpense.collectAsStateWithLifecycle()
                 val showDeleteConfirmDialog by viewModel.showDeleteConfirmDialog.collectAsStateWithLifecycle()
@@ -274,6 +275,7 @@ fun AshNotesNavHost(
                 BudgetScreen(
                     uiState = uiState,
                     showCreateDialog = showCreateDialog,
+                    showEditDialog = showEditDialog,
                     showExpenseDialog = showExpenseDialog,
                     editingExpense = editingExpense,
                     showDeleteConfirmDialog = showDeleteConfirmDialog,
@@ -288,6 +290,18 @@ fun AshNotesNavHost(
                     },
                     onConfirmCreateBudget = { name, amountMinor ->
                         viewModel.createBudget(name, amountMinor)
+                    },
+                    onEditBudgetClick = {
+                        viewModel.openEditBudgetDialog()
+                    },
+                    onDismissEditDialog = {
+                        viewModel.dismissEditBudgetDialog()
+                    },
+                    onConfirmEditBudget = { name, amountMinor ->
+                        viewModel.updateBudget(name, amountMinor)
+                    },
+                    onPageChange = { page ->
+                        viewModel.selectPage(page)
                     },
                     onAddExpenseClick = {
                         viewModel.openAddExpenseDialog()

@@ -148,6 +148,8 @@
 
     <!-- Budget dialog & money strings -->
     <string name="dialog_create_budget_title">Create budget</string>
+    <string name="dialog_edit_budget_title">Edit budget</string>
+    <string name="budget_action_edit_budget">Edit budget</string>
     <string name="field_budget_name_label">Budget name</string>
     <string name="field_budget_name_placeholder">e.g. Monthly Budget</string>
     <string name="field_budget_amount_label">Amount (₱)</string>
@@ -157,4 +159,7 @@
     <string name="error_failed_to_create_budget">Failed to create budget</string>
     <string name="budget_meter_semantics_spending">%1$d percent of %2$s spent</string>
     <string name="budget_meter_semantics_no_budget">No budget set</string>
+    <string name="pagination_previous">Previous</string>
+    <string name="pagination_page_format">Page %1$d of %2$d</string>
+    <string name="pagination_next">Next</string>
 </resources>

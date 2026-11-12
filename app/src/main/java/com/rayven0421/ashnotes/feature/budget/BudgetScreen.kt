@@ -27,9 +27,17 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -48,12 +56,14 @@ import com.rayven0421.ashnotes.feature.budget.components.DeleteExpenseConfirmDia
 import com.rayven0421.ashnotes.feature.budget.components.ExpenseDialog
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.launch
 
 @Composable
 fun BudgetScreen(
     modifier: Modifier = Modifier,
     uiState: UiState<BudgetContent> = UiState.Empty,
     showCreateDialog: Boolean = false,
+    showEditDialog: Boolean = false,
     showExpenseDialog: Boolean = false,
     editingExpense: Expense? = null,
     showDeleteConfirmDialog: Expense? = null,
@@ -62,6 +72,10 @@ fun BudgetScreen(
     onCreateBudgetClick: () -> Unit = {},
     onDismissCreateDialog: () -> Unit = {},
     onConfirmCreateBudget: (name: String, amountMinor: Long) -> Unit = { _, _ -> },
+    onEditBudgetClick: () -> Unit = {},
+    onDismissEditDialog: () -> Unit = {},
+    onConfirmEditBudget: (name: String, amountMinor: Long) -> Unit = { _, _ -> },
+    onPageChange: (Int) -> Unit = {},
     onAddExpenseClick: () -> Unit = {},
     onEditExpenseClick: (Expense) -> Unit = {},
     onDismissExpenseDialog: () -> Unit = {},
@@ -74,6 +88,25 @@ fun BudgetScreen(
     val scrollState = rememberScrollState()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+
+    var scrollContainerTop by remember { mutableFloatStateOf(0f) }
+    var transactionsHeaderTop by remember { mutableFloatStateOf(0f) }
+
+    val content = (uiState as? UiState.Success)?.data
+    val currentPage = content?.currentPage ?: 1
+
+    var previousPage by rememberSaveable { mutableIntStateOf(currentPage) }
+
+    LaunchedEffect(currentPage) {
+        if (previousPage != currentPage) {
+            previousPage = currentPage
+            val targetScroll = (scrollState.value + (transactionsHeaderTop - scrollContainerTop)).coerceAtLeast(0f).toInt()
+            coroutineScope.launch {
+                scrollState.animateScrollTo(targetScroll)
+            }
+        }
+    }
 
     LaunchedEffect(uiEvent) {
         uiEvent.collect { event ->
@@ -107,6 +140,19 @@ fun BudgetScreen(
         )
     }
 
+    if (showEditDialog && content != null) {
+        CreateBudgetDialog(
+            title = stringResource(R.string.dialog_edit_budget_title),
+            confirmButtonText = stringResource(R.string.action_save),
+            initialName = content.title,
+            initialAmountMinor = content.totalMinor,
+            onConfirm = { name, amountMinor ->
+                onConfirmEditBudget(name, amountMinor)
+            },
+            onDismiss = onDismissEditDialog
+        )
+    }
+
     if (showExpenseDialog) {
         ExpenseDialog(
             categories = categories,
@@ -134,6 +180,9 @@ fun BudgetScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .onGloballyPositioned { coords ->
+                    scrollContainerTop = coords.positionInRoot().y
+                }
                 .verticalScroll(scrollState)
                 .padding(bottom = AshNotesTheme.spacing.listBottomPadding),
             verticalArrangement = Arrangement.spacedBy(AshNotesTheme.spacing.large)
@@ -179,23 +228,40 @@ fun BudgetScreen(
                     }
                 }
                 is UiState.Success -> {
-                    val content = uiState.data
+                    val successContent = uiState.data
                     BudgetHero(
-                        content = content,
-                        onAddExpenseClick = onAddExpenseClick
+                        content = successContent,
+                        onAddExpenseClick = onAddExpenseClick,
+                        onEditBudgetClick = onEditBudgetClick
                     )
 
-                    if (content.categories.isNotEmpty()) {
-                        CategorySpendingList(categories = content.categories)
+                    if (successContent.categories.isNotEmpty()) {
+                        CategorySpendingList(categories = successContent.categories)
                     }
 
-                    if (content.transactionGroups.isNotEmpty()) {
+                    if (successContent.transactionGroups.isNotEmpty()) {
                         TransactionGroupList(
-                            groups = content.transactionGroups,
-                            onTransactionClick = onEditExpenseClick
+                            groups = successContent.transactionGroups,
+                            onTransactionClick = onEditExpenseClick,
+                            onHeaderPositioned = { top ->
+                                transactionsHeaderTop = top
+                            }
                         )
+                        if (successContent.totalPages > 1) {
+                            PaginationControl(
+                                currentPage = successContent.currentPage,
+                                totalPages = successContent.totalPages,
+                                onPreviousPage = { onPageChange(successContent.currentPage - 1) },
+                                onNextPage = { onPageChange(successContent.currentPage + 1) }
+                            )
+                        }
                     } else {
-                        EmptyTransactionsBlock(onAddExpenseClick = onAddExpenseClick)
+                        EmptyTransactionsBlock(
+                            onAddExpenseClick = onAddExpenseClick,
+                            onHeaderPositioned = { top ->
+                                transactionsHeaderTop = top
+                            }
+                        )
                     }
                 }
             }
@@ -204,7 +270,10 @@ fun BudgetScreen(
 }
 
 @Composable
-private fun EmptyTransactionsBlock(onAddExpenseClick: () -> Unit) {
+private fun EmptyTransactionsBlock(
+    onAddExpenseClick: () -> Unit,
+    onHeaderPositioned: (Float) -> Unit = {}
+) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(AshNotesTheme.spacing.medium)
@@ -212,7 +281,10 @@ private fun EmptyTransactionsBlock(onAddExpenseClick: () -> Unit) {
         Text(
             text = stringResource(R.string.budget_transactions_section),
             style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onBackground
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.onGloballyPositioned { coords ->
+                onHeaderPositioned(coords.positionInRoot().y)
+            }
         )
 
         Box(
@@ -244,7 +316,8 @@ private fun EmptyTransactionsBlock(onAddExpenseClick: () -> Unit) {
 @Composable
 private fun BudgetHero(
     content: BudgetContent,
-    onAddExpenseClick: () -> Unit
+    onAddExpenseClick: () -> Unit,
+    onEditBudgetClick: () -> Unit
 ) {
     val isOverBudget = content.totalMinor > 0 && content.spentMinor > content.totalMinor
     val isZeroBudget = content.totalMinor == 0L
@@ -254,11 +327,29 @@ private fun BudgetHero(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(AshNotesTheme.spacing.small)
     ) {
-        Text(
-            text = stringResource(R.string.budget_remaining_label),
-            style = MaterialTheme.typography.labelMedium,
-            color = AshNotesTheme.colors.textMuted
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(R.string.budget_remaining_label),
+                style = MaterialTheme.typography.labelMedium,
+                color = AshNotesTheme.colors.textMuted
+            )
+
+            if (!isZeroBudget) {
+                Text(
+                    text = stringResource(R.string.budget_action_edit_budget),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = AshNotesTheme.colors.ember,
+                    modifier = Modifier
+                        .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+                        .clickable(onClick = onEditBudgetClick)
+                        .wrapContentSize(Alignment.Center)
+                )
+            }
+        }
 
         val headlineText = when {
             isZeroBudget -> stringResource(R.string.budget_zero_label)
@@ -323,7 +414,6 @@ private fun BudgetHero(
         }
     }
 }
-
 
 @Composable
 private fun CategorySpendingList(categories: List<CategorySpendingItem>) {
@@ -404,7 +494,8 @@ private fun CategoryRow(category: CategorySpendingItem) {
 @Composable
 private fun TransactionGroupList(
     groups: List<TransactionGroup>,
-    onTransactionClick: (Expense) -> Unit
+    onTransactionClick: (Expense) -> Unit,
+    onHeaderPositioned: (Float) -> Unit = {}
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -413,7 +504,10 @@ private fun TransactionGroupList(
         Text(
             text = stringResource(R.string.budget_transactions_section),
             style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onBackground
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.onGloballyPositioned { coords ->
+                onHeaderPositioned(coords.positionInRoot().y)
+            }
         )
 
         groups.forEach { group ->
@@ -473,5 +567,49 @@ private fun TransactionGroupBlock(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun PaginationControl(
+    currentPage: Int,
+    totalPages: Int,
+    onPreviousPage: () -> Unit,
+    onNextPage: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        val hasPrevious = currentPage > 1
+        val hasNext = currentPage < totalPages
+
+        Text(
+            text = stringResource(R.string.pagination_previous),
+            style = MaterialTheme.typography.labelLarge,
+            color = if (hasPrevious) AshNotesTheme.colors.ember else AshNotesTheme.colors.textMuted,
+            modifier = Modifier
+                .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+                .clickable(enabled = hasPrevious, onClick = onPreviousPage)
+                .wrapContentSize(Alignment.Center)
+        )
+
+        Text(
+            text = stringResource(R.string.pagination_page_format, currentPage, totalPages),
+            style = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = "tnum"),
+            color = AshNotesTheme.colors.textMuted
+        )
+
+        Text(
+            text = stringResource(R.string.pagination_next),
+            style = MaterialTheme.typography.labelLarge,
+            color = if (hasNext) AshNotesTheme.colors.ember else AshNotesTheme.colors.textMuted,
+            modifier = Modifier
+                .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+                .clickable(enabled = hasNext, onClick = onNextPage)
+                .wrapContentSize(Alignment.Center)
+        )
     }
 }

@@ -45,4 +45,12 @@ object MoneyUtils {
         val formatted = String.format(Locale.getDefault(), "%s%,d.%02d", currencySymbol, major, minor)
         return if (amountMinor < 0) "-$formatted" else formatted
     }
+
+    /**
+     * Formats minor units as a plain decimal string suitable for text editing.
+     * e.g. 100000L -> "1000.00"
+     */
+    fun formatForInput(amountMinor: Long): String {
+        return BigDecimal(amountMinor).movePointLeft(2).toPlainString()
+    }
 }

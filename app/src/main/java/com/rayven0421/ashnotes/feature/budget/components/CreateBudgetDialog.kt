@@ -37,10 +37,18 @@ import com.rayven0421.ashnotes.core.designsystem.dialog.AshDialog
 fun CreateBudgetDialog(
     onConfirm: (name: String, amountMinor: Long) -> Unit,
     onDismiss: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    title: String = stringResource(R.string.dialog_create_budget_title),
+    confirmButtonText: String = stringResource(R.string.action_create),
+    initialName: String = "",
+    initialAmountMinor: Long? = null
 ) {
-    var nameText by rememberSaveable { mutableStateOf("") }
-    var amountText by rememberSaveable { mutableStateOf("") }
+    var nameText by rememberSaveable { mutableStateOf(initialName) }
+    var amountText by rememberSaveable {
+        mutableStateOf(
+            initialAmountMinor?.let { MoneyUtils.formatForInput(it) } ?: ""
+        )
+    }
 
     val focusRequester = remember { FocusRequester() }
     val defaultName = stringResource(R.string.budget_default_name)
@@ -62,7 +70,7 @@ fun CreateBudgetDialog(
 
     AshDialog(onDismissRequest = onDismiss, modifier = modifier) {
         Text(
-            text = stringResource(R.string.dialog_create_budget_title),
+            text = title,
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onBackground
         )
@@ -145,7 +153,7 @@ fun CreateBudgetDialog(
                 ),
                 shape = AshSmallShape
             ) {
-                Text(text = stringResource(R.string.action_create))
+                Text(text = confirmButtonText)
             }
         }
     }

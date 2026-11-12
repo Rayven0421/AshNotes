@@ -2,10 +2,12 @@ package com.rayven0421.ashnotes.feature.budget
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.rayven0421.ashnotes.core.common.BUDGET_PAGE_SIZE
 import com.rayven0421.ashnotes.core.common.UiState
 import com.rayven0421.ashnotes.core.common.calculatePeriodMetrics
 import com.rayven0421.ashnotes.core.common.formatTransactionDateHeader
 import com.rayven0421.ashnotes.core.common.getCurrentMonthPeriod
+import com.rayven0421.ashnotes.core.common.paginate
 import com.rayven0421.ashnotes.domain.model.Budget
 import com.rayven0421.ashnotes.domain.model.BudgetCalculator
 import com.rayven0421.ashnotes.domain.model.Category
@@ -48,6 +50,9 @@ class BudgetViewModel @Inject constructor(
     private val _showCreateDialog = MutableStateFlow(false)
     val showCreateDialog: StateFlow<Boolean> = _showCreateDialog.asStateFlow()
 
+    private val _showEditDialog = MutableStateFlow(false)
+    val showEditDialog: StateFlow<Boolean> = _showEditDialog.asStateFlow()
+
     private val _showExpenseDialog = MutableStateFlow(false)
     val showExpenseDialog: StateFlow<Boolean> = _showExpenseDialog.asStateFlow()
 
@@ -56,6 +61,9 @@ class BudgetViewModel @Inject constructor(
 
     private val _showDeleteConfirmDialog = MutableStateFlow<Expense?>(null)
     val showDeleteConfirmDialog: StateFlow<Expense?> = _showDeleteConfirmDialog.asStateFlow()
+
+    private val _currentPage = MutableStateFlow(1)
+    val currentPage: StateFlow<Int> = _currentPage.asStateFlow()
 
     private val _uiEvent = MutableSharedFlow<BudgetUiEvent>()
     val uiEvent: SharedFlow<BudgetUiEvent> = _uiEvent.asSharedFlow()
@@ -78,8 +86,9 @@ class BudgetViewModel @Inject constructor(
             } else {
                 combine(
                     expenseRepository.observeExpenses(activeBudget.id),
-                    categoryRepository.observeCategories()
-                ) { expenses, categoryList ->
+                    categoryRepository.observeCategories(),
+                    _currentPage
+                ) { expenses, categoryList, page ->
                     val categoryMap = categoryList.associateBy { it.id }
                     val activeExpenses = expenses.filter { it.deletedAt == null }
                     val totalSpent = BudgetCalculator.calculateTotalSpent(activeExpenses)
@@ -89,7 +98,9 @@ class BudgetViewModel @Inject constructor(
                     )
 
                     val sortedExpenses = activeExpenses.sortedByDescending { it.date }
-                    val grouped = sortedExpenses.groupBy { expense ->
+                    val pagination = paginate(sortedExpenses, page, BUDGET_PAGE_SIZE)
+
+                    val grouped = pagination.items.groupBy { expense ->
                         formatTransactionDateHeader(expense.date)
                     }
 
@@ -133,7 +144,9 @@ class BudgetViewModel @Inject constructor(
                             daysLeft = daysLeft,
                             paceFraction = paceFraction,
                             categories = categoryItems,
-                            transactionGroups = transactionGroups
+                            transactionGroups = transactionGroups,
+                            currentPage = pagination.currentPage,
+                            totalPages = pagination.totalPages
                         )
                     ) as UiState<BudgetContent>
                 }
@@ -177,6 +190,37 @@ class BudgetViewModel @Inject constructor(
         }
     }
 
+    fun openEditBudgetDialog() {
+        _showEditDialog.value = true
+    }
+
+    fun dismissEditBudgetDialog() {
+        _showEditDialog.value = false
+    }
+
+    fun updateBudget(name: String, amountMinor: Long) {
+        viewModelScope.launch {
+            try {
+                val state = uiState.value
+                val budgetId = if (state is UiState.Success) state.data.budgetId else return@launch
+                val activeBudget = budgetRepository.getBudgetById(budgetId) ?: return@launch
+                val updated = activeBudget.copy(
+                    name = name.ifBlank { "Monthly Budget" },
+                    amountMinor = amountMinor,
+                    updatedAt = System.currentTimeMillis()
+                )
+                budgetRepository.updateBudget(updated)
+                _showEditDialog.value = false
+            } catch (_: Exception) {
+                // Ignore
+            }
+        }
+    }
+
+    fun selectPage(page: Int) {
+        _currentPage.value = page
+    }
+
     fun openAddExpenseDialog() {
         _editingExpense.value = null
         _showExpenseDialog.value = true
@@ -208,6 +252,7 @@ class BudgetViewModel @Inject constructor(
                         date = date
                     )
                     expenseRepository.createExpense(expense)
+                    _currentPage.value = 1
                 } else {
                     val updated = editing.copy(
                         categoryId = categoryId,
@@ -270,7 +315,9 @@ data class BudgetContent(
     val daysLeft: Int,
     val paceFraction: Float,
     val categories: List<CategorySpendingItem>,
-    val transactionGroups: List<TransactionGroup>
+    val transactionGroups: List<TransactionGroup>,
+    val currentPage: Int = 1,
+    val totalPages: Int = 1
 )
 
 data class CategorySpendingItem(

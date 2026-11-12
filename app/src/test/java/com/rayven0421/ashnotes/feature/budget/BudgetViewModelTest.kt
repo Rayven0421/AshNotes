@@ -177,6 +177,89 @@ class BudgetViewModelTest {
         eventJob.cancel()
         collectJob.cancel()
     }
+
+    @Test
+    fun editBudget_updatesBudgetNameAndAmount() = runTest {
+        val collectJob = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.uiState.collect {}
+        }
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.openEditBudgetDialog()
+        assertTrue(viewModel.showEditDialog.value)
+
+        viewModel.updateBudget(name = "Updated Budget", amountMinor = 150000L)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.showEditDialog.value)
+        val updatedBudget = budgetRepository.getBudgetById("b1")
+        assertEquals("Updated Budget", updatedBudget?.name)
+        assertEquals(150000L, updatedBudget?.amountMinor)
+
+        val state = viewModel.uiState.value
+        assertTrue(state is UiState.Success)
+        val content = (state as UiState.Success).data
+        assertEquals("Updated Budget", content.title)
+        assertEquals(150000L, content.totalMinor)
+        collectJob.cancel()
+    }
+
+    @Test
+    fun pagination_paginatesExpensesAndChangesPages() = runTest {
+        val collectJob = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.uiState.collect {}
+        }
+        val expensesList = (1..15).map { index ->
+            Expense(id = "e$index", budgetId = "b1", categoryId = "c1", amountMinor = 1000L * index, description = "Exp $index", date = 1000L * index)
+        }
+        expenseRepository.setExpenses(expensesList)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val statePage1 = viewModel.uiState.value
+        assertTrue(statePage1 is UiState.Success)
+        val content1 = (statePage1 as UiState.Success).data
+        assertEquals(1, content1.currentPage)
+        assertEquals(2, content1.totalPages)
+        assertEquals(10, content1.transactionGroups.sumOf { it.transactions.size })
+
+        viewModel.selectPage(2)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val statePage2 = viewModel.uiState.value
+        assertTrue(statePage2 is UiState.Success)
+        val content2 = (statePage2 as UiState.Success).data
+        assertEquals(2, content2.currentPage)
+        assertEquals(2, content2.totalPages)
+        assertEquals(5, content2.transactionGroups.sumOf { it.transactions.size })
+        collectJob.cancel()
+    }
+
+    @Test
+    fun addExpense_jumpsToPage1() = runTest {
+        val collectJob = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.uiState.collect {}
+        }
+        val expensesList = (1..15).map { index ->
+            Expense(id = "e$index", budgetId = "b1", categoryId = "c1", amountMinor = 1000L * index, description = "Exp $index", date = 1000L * index)
+        }
+        expenseRepository.setExpenses(expensesList)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.selectPage(2)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(2, viewModel.currentPage.value)
+
+        viewModel.openAddExpenseDialog()
+        viewModel.saveExpense(categoryId = "c1", amountMinor = 5000L, date = 20000L, note = "New Expense")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(1, viewModel.currentPage.value)
+        val state = viewModel.uiState.value
+        assertTrue(state is UiState.Success)
+        assertEquals(1, (state as UiState.Success).data.currentPage)
+        collectJob.cancel()
+    }
 }
 
 class FakeBudgetRepository : BudgetRepository {
