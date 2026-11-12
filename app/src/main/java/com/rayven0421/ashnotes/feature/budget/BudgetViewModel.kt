@@ -222,8 +222,23 @@ class BudgetViewModel @Inject constructor(
     }
 
     fun openAddExpenseDialog() {
-        _editingExpense.value = null
-        _showExpenseDialog.value = true
+        val current = uiState.value
+        if (current is UiState.Success) {
+            _editingExpense.value = null
+            _showExpenseDialog.value = true
+        } else if (current is UiState.Empty || current is UiState.Error) {
+            _showCreateDialog.value = true
+        } else {
+            viewModelScope.launch {
+                val state = uiState.first { it !is UiState.Loading }
+                if (state is UiState.Success) {
+                    _editingExpense.value = null
+                    _showExpenseDialog.value = true
+                } else {
+                    _showCreateDialog.value = true
+                }
+            }
+        }
     }
 
     fun openEditExpenseDialog(expense: Expense) {

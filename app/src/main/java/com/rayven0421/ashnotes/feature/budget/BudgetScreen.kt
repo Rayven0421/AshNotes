@@ -332,11 +332,20 @@ private fun BudgetHero(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = stringResource(R.string.budget_remaining_label),
-                style = MaterialTheme.typography.labelMedium,
-                color = AshNotesTheme.colors.textMuted
-            )
+            Column(modifier = Modifier.weight(1f)) {
+                if (content.title.isNotBlank()) {
+                    Text(
+                        text = content.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+                Text(
+                    text = stringResource(R.string.budget_remaining_label),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = AshNotesTheme.colors.textMuted
+                )
+            }
 
             if (!isZeroBudget) {
                 Text(

@@ -118,6 +118,23 @@ class BudgetViewModelTest {
     }
 
     @Test
+    fun openAddExpenseDialog_withoutBudget_opensCreateBudgetDialog() = runTest {
+        budgetRepository.budgetsFlow.value = emptyList()
+        val collectJob = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.uiState.collect {}
+        }
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(UiState.Empty, viewModel.uiState.value)
+
+        viewModel.openAddExpenseDialog()
+
+        assertFalse(viewModel.showExpenseDialog.value)
+        assertTrue(viewModel.showCreateDialog.value)
+        collectJob.cancel()
+    }
+
+    @Test
     fun editExpense_updatesExistingExpense() = runTest {
         val collectJob = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
             viewModel.uiState.collect {}

@@ -77,8 +77,14 @@ fun ExpenseDialog(
     var selectedDateMs by rememberSaveable {
         mutableLongStateOf(expenseToEdit?.date ?: System.currentTimeMillis())
     }
-    var noteText by rememberSaveable { mutableStateOf(expenseToEdit?.description ?: "") }
+    var noteText by rememberSaveable(expenseToEdit) { mutableStateOf(expenseToEdit?.description ?: "") }
     var dropdownExpanded by remember { mutableStateOf(false) }
+
+    LaunchedEffect(categories) {
+        if (selectedCategoryId.isBlank() && categories.isNotEmpty()) {
+            selectedCategoryId = categories.first().id
+        }
+    }
 
     val focusRequester = remember { FocusRequester() }
 

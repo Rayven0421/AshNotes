@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -85,12 +86,12 @@ fun AshNotesNavHost(
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination
-    val showBottomBar = destinations.any { currentRoute?.route?.startsWith(it.route::class.qualifiedName ?: "") == true }
+    val showBottomBar = currentRoute != null && destinations.any { currentRoute.hasRoute(it.route::class) }
 
     LaunchedEffect(isUserOrLocal) {
         if (!isUserOrLocal) {
-            val currentRouteName = navController.currentBackStackEntry?.destination?.route
-            if (currentRouteName != Screen.Login::class.qualifiedName && currentRouteName != Screen.Register::class.qualifiedName) {
+            val destination = navController.currentBackStackEntry?.destination
+            if (destination != null && !destination.hasRoute(Screen.Login::class) && !destination.hasRoute(Screen.Register::class)) {
                 navController.navigate(Screen.Login) {
                     popUpTo(0) { inclusive = true }
                 }
@@ -108,7 +109,7 @@ fun AshNotesNavHost(
                     contentColor = MaterialTheme.colorScheme.onSurface
                 ) {
                     destinations.forEach { destination ->
-                        val selected = currentRoute?.route?.startsWith(destination.route::class.qualifiedName ?: "") == true
+                        val selected = currentRoute.hasRoute(destination.route::class)
                         NavigationBarItem(
                             selected = selected,
                             onClick = {
