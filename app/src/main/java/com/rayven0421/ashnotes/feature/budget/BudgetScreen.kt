@@ -8,20 +8,20 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
@@ -33,13 +33,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import com.rayven0421.ashnotes.R
 import com.rayven0421.ashnotes.core.common.MoneyUtils
 import com.rayven0421.ashnotes.core.common.UiState
 import com.rayven0421.ashnotes.core.designsystem.AshNotesTheme
 import com.rayven0421.ashnotes.core.designsystem.AshSmallShape
 import com.rayven0421.ashnotes.core.designsystem.BudgetMeter
-import com.rayven0421.ashnotes.core.designsystem.ScreenHeader
+import com.rayven0421.ashnotes.core.designsystem.TabScreenLayout
 import com.rayven0421.ashnotes.domain.model.Category
 import com.rayven0421.ashnotes.domain.model.Expense
 import com.rayven0421.ashnotes.feature.budget.components.CreateBudgetDialog
@@ -125,21 +126,18 @@ fun BudgetScreen(
         )
     }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { scaffoldPadding ->
+    TabScreenLayout(
+        title = stringResource(R.string.budget_screen_title),
+        modifier = modifier,
+        snackbarHostState = snackbarHostState
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(scaffoldPadding)
                 .verticalScroll(scrollState)
-                .padding(horizontal = AshNotesTheme.spacing.screenHorizontal),
+                .padding(bottom = AshNotesTheme.spacing.listBottomPadding),
             verticalArrangement = Arrangement.spacedBy(AshNotesTheme.spacing.large)
         ) {
-            ScreenHeader(title = stringResource(R.string.budget_screen_title))
-
             when (uiState) {
                 is UiState.Empty, is UiState.Loading -> {
                     Box(
@@ -201,8 +199,6 @@ fun BudgetScreen(
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(AshNotesTheme.spacing.huge))
         }
     }
 }
@@ -319,13 +315,15 @@ private fun BudgetHero(
                     style = MaterialTheme.typography.labelLarge,
                     color = AshNotesTheme.colors.ember,
                     modifier = Modifier
+                        .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
                         .clickable(onClick = onAddExpenseClick)
-                        .padding(vertical = AshNotesTheme.spacing.extraSmall)
+                        .wrapContentSize(Alignment.Center)
                 )
             }
         }
     }
 }
+
 
 @Composable
 private fun CategorySpendingList(categories: List<CategorySpendingItem>) {

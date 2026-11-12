@@ -11,7 +11,7 @@ sealed interface Screen {
     data object Notes : Screen
 
     @Serializable
-    data object Budget : Screen
+    data class Budget(val openAddExpense: Boolean = false) : Screen
 
     @Serializable
     data object Settings : Screen

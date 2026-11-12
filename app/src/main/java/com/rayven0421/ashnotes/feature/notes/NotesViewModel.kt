@@ -78,7 +78,7 @@ class NotesViewModel @Inject constructor(
                     NoteItem(
                         id = note.id,
                         title = note.title,
-                        preview = "",
+                        preview = note.preview,
                         updatedTime = formatNoteDate(note.updatedAt),
                         isPinned = note.isPinned,
                         isArchived = note.isArchived

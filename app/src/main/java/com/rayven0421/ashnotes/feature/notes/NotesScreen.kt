@@ -1,20 +1,11 @@
 package com.rayven0421.ashnotes.feature.notes
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -29,13 +20,12 @@ import androidx.compose.ui.res.stringResource
 import com.rayven0421.ashnotes.R
 import com.rayven0421.ashnotes.core.common.UiState
 import com.rayven0421.ashnotes.core.designsystem.AshNotesTheme
-import com.rayven0421.ashnotes.core.designsystem.ScreenHeader
+import com.rayven0421.ashnotes.core.designsystem.TabScreenLayout
 import com.rayven0421.ashnotes.domain.model.NoteSortOption
 import com.rayven0421.ashnotes.feature.notes.components.NotesContentArea
 import com.rayven0421.ashnotes.feature.notes.components.NotesDialogs
 import com.rayven0421.ashnotes.feature.notes.components.NotesSearchRow
 import com.rayven0421.ashnotes.feature.notes.components.SelectionTopBar
-import kotlinx.coroutines.launch
 
 @Composable
 fun NotesScreen(
@@ -81,11 +71,10 @@ fun NotesScreen(
         }
     }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.background,
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+    TabScreenLayout(
+        title = stringResource(R.string.notes_screen_title),
+        modifier = modifier,
+        snackbarHostState = snackbarHostState,
         floatingActionButton = {
             if (!isSelectionMode && uiState is UiState.Success) {
                 FloatingActionButton(
@@ -100,69 +89,57 @@ fun NotesScreen(
                 }
             }
         }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = AshNotesTheme.spacing.screenHorizontal),
-            verticalArrangement = Arrangement.spacedBy(AshNotesTheme.spacing.medium)
-        ) {
-            ScreenHeader(title = stringResource(R.string.notes_screen_title))
-
-            if (isSelectionMode) {
-                val totalCount = if (uiState is UiState.Success) {
-                    uiState.data.pinnedNotes.size + uiState.data.otherNotes.size
-                } else {
-                    0
-                }
-                SelectionTopBar(
-                    selectedCount = selectedIds.size,
-                    totalCount = totalCount,
-                    onCloseSelection = onClearSelection,
-                    onSelectAllToggle = {
-                        if (uiState is UiState.Success) {
-                            val allIds = (uiState.data.pinnedNotes + uiState.data.otherNotes).map { it.id }
-                            if (selectedIds.size == allIds.size) {
-                                onClearSelection()
-                            } else {
-                                onSelectAllNotes(allIds)
-                            }
-                        }
-                    },
-                    onBulkPin = { onBulkPinSelected(true) },
-                    onBulkArchive = { onBulkArchiveSelected(true) },
-                    onBulkDelete = { showBulkDeleteDialog = true }
-                )
+    ) {
+        if (isSelectionMode) {
+            val totalCount = if (uiState is UiState.Success) {
+                uiState.data.pinnedNotes.size + uiState.data.otherNotes.size
             } else {
-                NotesSearchRow(
-                    searchQuery = searchQuery,
-                    onQueryChange = {
-                        searchQuery = it
-                        onSearchQueryChanged(it)
-                    },
-                    currentSortOption = sortOption,
-                    onSortOptionSelected = onSortOptionSelected
-                )
+                0
             }
-
-            Spacer(modifier = Modifier.height(AshNotesTheme.spacing.extraSmall))
-
-            NotesContentArea(
-                uiState = uiState,
-                selectedIds = selectedIds,
-                isSelectionMode = isSelectionMode,
-                onNoteClick = onNoteClick,
-                onNoteLongClick = { id -> onToggleSelectNote(id) },
-                onToggleSelect = { id -> onToggleSelectNote(id) },
-                onNewNoteClick = { showNewNoteDialog = true },
-                onTogglePin = onTogglePin,
-                onToggleArchive = onToggleArchive,
-                onRenameRequest = { note -> noteIdToRename = note.id },
-                onDeleteRequest = { note -> noteIdToDelete = note.id },
-                modifier = Modifier.weight(1f)
+            SelectionTopBar(
+                selectedCount = selectedIds.size,
+                totalCount = totalCount,
+                onCloseSelection = onClearSelection,
+                onSelectAllToggle = {
+                    if (uiState is UiState.Success) {
+                        val allIds = (uiState.data.pinnedNotes + uiState.data.otherNotes).map { it.id }
+                        if (selectedIds.size == allIds.size) {
+                            onClearSelection()
+                        } else {
+                            onSelectAllNotes(allIds)
+                        }
+                    }
+                },
+                onBulkPin = { onBulkPinSelected(true) },
+                onBulkArchive = { onBulkArchiveSelected(true) },
+                onBulkDelete = { showBulkDeleteDialog = true }
+            )
+        } else {
+            NotesSearchRow(
+                searchQuery = searchQuery,
+                onQueryChange = {
+                    searchQuery = it
+                    onSearchQueryChanged(it)
+                },
+                currentSortOption = sortOption,
+                onSortOptionSelected = onSortOptionSelected
             )
         }
+
+        NotesContentArea(
+            uiState = uiState,
+            selectedIds = selectedIds,
+            isSelectionMode = isSelectionMode,
+            onNoteClick = onNoteClick,
+            onNoteLongClick = { id -> onToggleSelectNote(id) },
+            onToggleSelect = { id -> onToggleSelectNote(id) },
+            onNewNoteClick = { showNewNoteDialog = true },
+            onTogglePin = onTogglePin,
+            onToggleArchive = onToggleArchive,
+            onRenameRequest = { note -> noteIdToRename = note.id },
+            onDeleteRequest = { note -> noteIdToDelete = note.id },
+            modifier = Modifier.weight(1f)
+        )
     }
 
     NotesDialogs(
@@ -188,3 +165,4 @@ fun NotesScreen(
         scope = scope
     )
 }
+

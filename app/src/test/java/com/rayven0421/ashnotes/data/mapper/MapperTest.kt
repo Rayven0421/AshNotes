@@ -46,6 +46,7 @@ class MapperTest {
         assertEquals("w1", domain.workspaceId)
         assertEquals("Meeting Notes", domain.title)
         assertEquals("{\"version\":1,\"blocks\":[]}", domain.contentJson)
+        assertEquals("", domain.preview)
         assertEquals(1, domain.documentVersion)
         assertEquals(true, domain.isPinned)
         assertEquals(false, domain.isArchived)

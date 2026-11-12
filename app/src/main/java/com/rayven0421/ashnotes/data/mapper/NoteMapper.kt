@@ -2,12 +2,14 @@ package com.rayven0421.ashnotes.data.mapper
 
 import com.rayven0421.ashnotes.data.local.entity.NoteEntity
 import com.rayven0421.ashnotes.domain.model.Note
+import com.rayven0421.ashnotes.domain.model.extractNotePreview
 
 fun NoteEntity.toDomain() = Note(
     id = id,
     workspaceId = workspaceId,
     title = title,
     contentJson = contentJson,
+    preview = extractNotePreview(contentJson),
     documentVersion = documentVersion,
     isPinned = isPinned,
     isArchived = isArchived,

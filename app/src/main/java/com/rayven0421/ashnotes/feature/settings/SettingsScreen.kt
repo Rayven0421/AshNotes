@@ -4,17 +4,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,7 +28,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rayven0421.ashnotes.R
 import com.rayven0421.ashnotes.core.common.UiState
 import com.rayven0421.ashnotes.core.designsystem.AshNotesTheme
-import com.rayven0421.ashnotes.core.designsystem.ScreenHeader
+import com.rayven0421.ashnotes.core.designsystem.TabScreenLayout
 import com.rayven0421.ashnotes.core.designsystem.dialog.AshConfirmDialog
 
 @Composable
@@ -86,21 +82,18 @@ fun SettingsScreen(
         )
     }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { innerPadding ->
+    TabScreenLayout(
+        title = stringResource(R.string.settings_screen_title),
+        modifier = modifier,
+        snackbarHostState = snackbarHostState
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
                 .verticalScroll(scrollState)
-                .padding(horizontal = AshNotesTheme.spacing.screenHorizontal),
+                .padding(bottom = AshNotesTheme.spacing.listBottomPadding),
             verticalArrangement = Arrangement.spacedBy(AshNotesTheme.spacing.large)
         ) {
-            ScreenHeader(title = stringResource(R.string.settings_screen_title))
-
             // Grouped plain setting rows
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -118,10 +111,10 @@ fun SettingsScreen(
                 )
 
                 // 2. Account
-                val accountDesc = if (settingsContent.currentUser != null) {
-                    stringResource(R.string.settings_account_signed_in_desc, settingsContent.currentUser.email ?: "")
+                val accountDesc = if (settingsContent.currentUser != null && !settingsContent.currentUser.email.isNullOrEmpty()) {
+                    stringResource(R.string.settings_account_signed_in, settingsContent.currentUser.email)
                 } else {
-                    stringResource(R.string.settings_account_desc)
+                    stringResource(R.string.settings_account_local)
                 }
                 SettingRow(
                     title = stringResource(R.string.settings_account_title),
@@ -192,8 +185,6 @@ fun SettingsScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(AshNotesTheme.spacing.large))
-
             // Destructive Action Section
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -207,9 +198,6 @@ fun SettingsScreen(
                     onClick = { showDeleteDialog = true }
                 )
             }
-
-            // Bottom spacing so last row clears navigation bar comfortably when scrolled
-            Spacer(modifier = Modifier.height(AshNotesTheme.spacing.huge))
         }
     }
 }
@@ -262,3 +250,4 @@ fun SettingsScreenPreview() {
         SettingsScreen()
     }
 }
+

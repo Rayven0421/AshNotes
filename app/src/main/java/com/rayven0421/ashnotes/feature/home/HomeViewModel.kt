@@ -8,8 +8,11 @@ import com.rayven0421.ashnotes.core.common.calculatePeriodMetrics
 import com.rayven0421.ashnotes.core.common.formatNoteDate
 import com.rayven0421.ashnotes.domain.model.Budget
 import com.rayven0421.ashnotes.domain.model.BudgetCalculator
+import com.rayven0421.ashnotes.domain.model.Category
 import com.rayven0421.ashnotes.domain.model.Expense
+import com.rayven0421.ashnotes.domain.repository.AuthRepository
 import com.rayven0421.ashnotes.domain.repository.BudgetRepository
+import com.rayven0421.ashnotes.domain.repository.CategoryRepository
 import com.rayven0421.ashnotes.domain.repository.ExpenseRepository
 import com.rayven0421.ashnotes.domain.repository.NoteRepository
 import com.rayven0421.ashnotes.domain.repository.WorkspaceRepository
@@ -36,7 +39,9 @@ class HomeViewModel @Inject constructor(
     private val noteRepository: NoteRepository,
     private val budgetRepository: BudgetRepository,
     private val expenseRepository: ExpenseRepository,
-    private val workspaceRepository: WorkspaceRepository
+    private val categoryRepository: CategoryRepository,
+    private val workspaceRepository: WorkspaceRepository,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _errorMessageResId = MutableStateFlow<Int?>(null)
@@ -46,22 +51,24 @@ class HomeViewModel @Inject constructor(
         .flatMapLatest { workspaceId ->
             combine(
                 noteRepository.observeNotes(workspaceId),
-                budgetRepository.observeBudgets(workspaceId)
-            ) { notes, budgets ->
-                notes to budgets
+                budgetRepository.observeBudgets(workspaceId),
+                categoryRepository.observeCategories(),
+                authRepository.currentUser
+            ) { notes, budgets, categories, currentUser ->
+                Quintuple(notes, budgets, categories, currentUser)
             }
         }
-        .flatMapLatest { (notes, budgets) ->
+        .flatMapLatest { (notes, budgets, categories, currentUser) ->
             val activeBudget = budgets.firstOrNull { !it.isArchived }
             if (activeBudget == null) {
-                flowOf(Triple(notes, null as Budget?, emptyList<Expense>()))
+                flowOf(Sextuple(notes, null as Budget?, emptyList<Expense>(), categories, currentUser?.email))
             } else {
                 expenseRepository.observeExpenses(activeBudget.id).map { expenses ->
-                    Triple(notes, activeBudget, expenses)
+                    Sextuple(notes, activeBudget, expenses, categories, currentUser?.email)
                 }
             }
         }
-        .map { (notes, activeBudget, expenses) ->
+        .map { (notes, activeBudget, expenses, categories, userEmail) ->
             val recentNotes = notes
                 .filter { !it.isArchived }
                 .sortedByDescending { it.updatedAt }
@@ -70,8 +77,22 @@ class HomeViewModel @Inject constructor(
                     HomeNoteItem(
                         id = note.id,
                         title = note.title,
-                        preview = "",
+                        preview = note.preview,
                         updatedTime = formatNoteDate(note.updatedAt)
+                    )
+                }
+
+            val categoryMap = categories.associateBy { it.id }
+            val recentExpenses = expenses
+                .take(3)
+                .map { expense ->
+                    val cat = categoryMap[expense.categoryId]
+                    val title = expense.description.ifBlank { cat?.name ?: "Other" }
+                    HomeExpenseItem(
+                        id = expense.id,
+                        title = title,
+                        amountMinor = expense.amountMinor,
+                        dateText = formatNoteDate(expense.date)
                     )
                 }
 
@@ -99,8 +120,8 @@ class HomeViewModel @Inject constructor(
                     paceFraction = paceFraction,
                     hasBudget = hasBudget,
                     notes = recentNotes,
-                    activity = emptyList(),
-                    syncStatusResId = R.string.home_sync_local_only
+                    recentExpenses = recentExpenses,
+                    userEmail = userEmail
                 )
             ) as UiState<HomeContent>
         }
@@ -139,6 +160,21 @@ class HomeViewModel @Inject constructor(
     }
 }
 
+private data class Quintuple<A, B, C, D>(
+    val first: A,
+    val second: B,
+    val third: C,
+    val fourth: D
+)
+
+private data class Sextuple<A, B, C, D, E>(
+    val first: A,
+    val second: B,
+    val third: C,
+    val fourth: D,
+    val fifth: E
+)
+
 data class HomeContent(
     val greetingResId: Int,
     val spentMinor: Long,
@@ -146,8 +182,8 @@ data class HomeContent(
     val paceFraction: Float,
     val hasBudget: Boolean,
     val notes: List<HomeNoteItem>,
-    val activity: List<HomeActivityItem>,
-    val syncStatusResId: Int
+    val recentExpenses: List<HomeExpenseItem> = emptyList(),
+    val userEmail: String?
 )
 
 data class HomeNoteItem(
@@ -157,8 +193,9 @@ data class HomeNoteItem(
     val updatedTime: String
 )
 
-data class HomeActivityItem(
+data class HomeExpenseItem(
     val id: String,
-    val description: String,
-    val time: String
+    val title: String,
+    val amountMinor: Long,
+    val dateText: String
 )

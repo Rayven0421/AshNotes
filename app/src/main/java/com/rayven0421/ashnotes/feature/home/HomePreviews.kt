@@ -27,19 +27,21 @@ internal object SampleHomeData {
                 updatedTime = "Yesterday"
             )
         ),
-        activity = listOf(
-            HomeActivityItem(
-                id = "a1",
-                description = "Added expense: Coffee beans (₱450.00)",
-                time = "1h ago"
+        recentExpenses = listOf(
+            HomeExpenseItem(
+                id = "e1",
+                title = "Supermarket groceries",
+                amountMinor = 125050L,
+                dateText = "Today"
             ),
-            HomeActivityItem(
-                id = "a2",
-                description = "Updated note: Grocery run",
-                time = "2h ago"
+            HomeExpenseItem(
+                id = "e2",
+                title = "Electricity bill",
+                amountMinor = 240000L,
+                dateText = "Yesterday"
             )
         ),
-        syncStatusResId = R.string.home_sync_local_only
+        userEmail = "user@example.com"
     )
 }
 

@@ -32,11 +32,13 @@
     <string name="auth_error_unknown">Something went wrong. Try again.</string>
     <string name="auth_error_no_google_account">No Google account found on this device. Add an account and try again.</string>
 
-    <!-- Settings Account strings -->
-    <string name="settings_account_signed_in_desc">Signed in as %s</string>
-    <string name="settings_action_sign_in">Sign in</string>
-    <string name="settings_action_sign_out">Sign out</string>
+    <!-- Additional Home & Settings strings -->
+    <string name="home_footer_signed_in">Signed in as %s. Your data stays on this device.</string>
+    <string name="home_footer_local_only">Local only. Your data stays on this device.</string>
+    <string name="settings_account_signed_in">Signed in as %s</string>
+    <string name="settings_account_local">Local only</string>
     <string name="dialog_sign_out_title">Sign out?</string>
-    <string name="dialog_sign_out_message">Are you sure you want to sign out? Your local data will be preserved.</string>
+    <string name="dialog_sign_out_message">You can sign back in anytime. Your data will remain on this device.</string>
+    <string name="action_sign_in">Sign in</string>
     <string name="action_sign_out">Sign out</string>
 </resources>

@@ -29,6 +29,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import com.rayven0421.ashnotes.R
 import com.rayven0421.ashnotes.core.designsystem.AshNotesTheme
 import com.rayven0421.ashnotes.feature.authentication.LoginScreen
@@ -50,7 +51,7 @@ sealed class TopLevelDestination(
 ) {
     data object Home : TopLevelDestination(Screen.Home, R.string.nav_home, Icons.Outlined.Home)
     data object Notes : TopLevelDestination(Screen.Notes, R.string.nav_notes, Icons.Outlined.List)
-    data object Budget : TopLevelDestination(Screen.Budget, R.string.nav_budget, Icons.Outlined.Wallet)
+    data object Budget : TopLevelDestination(Screen.Budget(), R.string.nav_budget, Icons.Outlined.Wallet)
     data object Settings : TopLevelDestination(Screen.Settings, R.string.nav_settings, Icons.Outlined.Settings)
 }
 
@@ -84,7 +85,7 @@ fun AshNotesNavHost(
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination
-    val showBottomBar = destinations.any { it.route::class.qualifiedName == currentRoute?.route }
+    val showBottomBar = destinations.any { currentRoute?.route?.startsWith(it.route::class.qualifiedName ?: "") == true }
 
     LaunchedEffect(isUserOrLocal) {
         if (!isUserOrLocal) {
@@ -107,7 +108,7 @@ fun AshNotesNavHost(
                     contentColor = MaterialTheme.colorScheme.onSurface
                 ) {
                     destinations.forEach { destination ->
-                        val selected = currentRoute?.route == destination.route::class.qualifiedName
+                        val selected = currentRoute?.route?.startsWith(destination.route::class.qualifiedName ?: "") == true
                         NavigationBarItem(
                             selected = selected,
                             onClick = {
@@ -191,7 +192,16 @@ fun AshNotesNavHost(
                     uiState = uiState,
                     modifier = Modifier.padding(innerPadding),
                     onNavigateToBudget = {
-                        navController.navigate(Screen.Budget) {
+                        navController.navigate(Screen.Budget()) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    onAddExpenseClick = {
+                        navController.navigate(Screen.Budget(openAddExpense = true)) {
                             popUpTo(navController.graph.findStartDestination().id) {
                                 saveState = true
                             }
@@ -245,7 +255,8 @@ fun AshNotesNavHost(
                     onBulkRestoreNotes = { ids -> viewModel.bulkRestoreNotes(ids) }
                 )
             }
-            composable<Screen.Budget> {
+            composable<Screen.Budget> { backStackEntry ->
+                val budgetRoute = backStackEntry.toRoute<Screen.Budget>()
                 val viewModel: BudgetViewModel = hiltViewModel()
                 val uiState by viewModel.uiState.collectAsStateWithLifecycle()
                 val showCreateDialog by viewModel.showCreateDialog.collectAsStateWithLifecycle()
@@ -253,6 +264,12 @@ fun AshNotesNavHost(
                 val editingExpense by viewModel.editingExpense.collectAsStateWithLifecycle()
                 val showDeleteConfirmDialog by viewModel.showDeleteConfirmDialog.collectAsStateWithLifecycle()
                 val categories by viewModel.categories.collectAsStateWithLifecycle()
+
+                LaunchedEffect(budgetRoute.openAddExpense) {
+                    if (budgetRoute.openAddExpense) {
+                        viewModel.openAddExpenseDialog()
+                    }
+                }
 
                 BudgetScreen(
                     uiState = uiState,
