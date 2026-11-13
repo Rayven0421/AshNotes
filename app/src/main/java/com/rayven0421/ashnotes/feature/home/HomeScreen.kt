@@ -63,6 +63,14 @@ fun HomeScreen(
                 .padding(bottom = AshNotesTheme.spacing.listBottomPadding),
             verticalArrangement = Arrangement.spacedBy(AshNotesTheme.spacing.large)
         ) {
+            if (uiState is UiState.Success) {
+                Text(
+                    text = stringResource(R.string.home_active_workspace, uiState.data.activeWorkspaceName),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = AshNotesTheme.colors.textMuted
+                )
+            }
+
             HomeBudgetSection(
                 uiState = uiState,
                 onNavigateToBudget = onNavigateToBudget

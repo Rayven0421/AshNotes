@@ -171,4 +171,27 @@ class CloudBackupMapperTest {
         val largeContent = "a".repeat(901 * 1024)
         assertTrue(NoteSizeChecker.isTooLarge(largeContent))
     }
+
+    @Test
+    fun noteEntityToMapAndBack_preservesPinnedAndArchivedFlags_allCombinations() {
+        val combinations = listOf(
+            Pair(true, true),
+            Pair(true, false),
+            Pair(false, true),
+            Pair(false, false)
+        )
+        for ((pinned, archived) in combinations) {
+            val original = NoteEntity(
+                id = "note-$pinned-$archived",
+                workspaceId = "ws-1",
+                title = "Note",
+                isPinned = pinned,
+                isArchived = archived
+            )
+            val map = original.toMap()
+            val restored = noteEntityFromMap(map)
+            assertEquals(pinned, restored.isPinned)
+            assertEquals(archived, restored.isArchived)
+        }
+    }
 }

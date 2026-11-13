@@ -383,20 +383,18 @@ class FakeCategoryRepository : CategoryRepository {
 }
 
 class FakeWorkspaceRepository : WorkspaceRepository {
-    override fun observeWorkspaces(): Flow<List<Workspace>> {
-        return MutableStateFlow(listOf(Workspace(id = "w1", name = "Default", createdAt = 0L, updatedAt = 0L, deletedAt = null)))
-    }
-
-    override fun observeActiveWorkspaceId(): Flow<String> {
-        return MutableStateFlow("w1")
-    }
+    override val workspaces: Flow<List<Workspace>> = MutableStateFlow(listOf(Workspace(id = "w1", name = "Default", createdAt = 0L, updatedAt = 0L, deletedAt = null)))
+    override val activeWorkspaceId: Flow<String> = MutableStateFlow("w1")
 
     override suspend fun getWorkspaceById(id: String): Workspace? {
         return Workspace(id = "w1", name = "Default", createdAt = 0L, updatedAt = 0L, deletedAt = null)
     }
 
-    override suspend fun createWorkspace(name: String): String {
-        return "w1"
+    override suspend fun createWorkspace(name: String): com.rayven0421.ashnotes.domain.model.CreateWorkspaceResult {
+        return com.rayven0421.ashnotes.domain.model.CreateWorkspaceResult.Success("w1")
+    }
+
+    override suspend fun setActive(id: String) {
     }
 
     override suspend fun updateWorkspace(workspace: Workspace) {

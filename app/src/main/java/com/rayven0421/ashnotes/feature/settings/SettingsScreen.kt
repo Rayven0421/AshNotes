@@ -42,6 +42,7 @@ import com.rayven0421.ashnotes.core.designsystem.AshSmallShape
 import com.rayven0421.ashnotes.core.designsystem.TabScreenLayout
 import com.rayven0421.ashnotes.core.designsystem.dialog.AshConfirmDialog
 import com.rayven0421.ashnotes.core.designsystem.dialog.AshDialog
+import com.rayven0421.ashnotes.core.designsystem.dialog.AshTextInputDialog
 
 tailrec fun Context.findFragmentActivity(): FragmentActivity? = when (this) {
     is FragmentActivity -> this
@@ -59,7 +60,13 @@ fun SettingsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showSignOutDialog by remember { mutableStateOf(false) }
+    var showWorkspacesDialog by remember { mutableStateOf(false) }
+    var showNewWorkspaceDialog by remember { mutableStateOf(false) }
+
     val dataClearedMsg = stringResource(R.string.snackbar_data_deleted)
+    val errorEmptyMsg = stringResource(R.string.error_workspace_empty)
+    val errorTooLongMsg = stringResource(R.string.error_workspace_too_long)
+    val errorDuplicateMsg = stringResource(R.string.error_workspace_duplicate)
 
     val context = LocalContext.current
     val fragmentActivity = context.findFragmentActivity()
@@ -104,6 +111,87 @@ fun SettingsScreen(
                 viewModel.signOut()
             },
             onDismiss = { showSignOutDialog = false }
+        )
+    }
+
+    if (showWorkspacesDialog) {
+        AshDialog(onDismissRequest = { showWorkspacesDialog = false }) {
+            Text(
+                text = stringResource(R.string.settings_workspaces_dialog_title),
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(AshNotesTheme.spacing.none)
+            ) {
+                settingsContent.workspaces.forEach { workspace ->
+                    val isActive = workspace.id == settingsContent.activeWorkspaceId
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                viewModel.selectWorkspace(workspace.id)
+                                showWorkspacesDialog = false
+                            }
+                            .padding(vertical = AshNotesTheme.spacing.medium),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = workspace.name,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = if (isActive) AshNotesTheme.colors.ember else MaterialTheme.colorScheme.onBackground
+                        )
+                        if (isActive) {
+                            Text(
+                                text = "✓",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = AshNotesTheme.colors.ember
+                            )
+                        }
+                    }
+                    HorizontalDivider(
+                        color = AshNotesTheme.colors.line,
+                        thickness = AshNotesTheme.spacing.hairline
+                    )
+                }
+            }
+            Button(
+                onClick = {
+                    showWorkspacesDialog = false
+                    showNewWorkspaceDialog = true
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = AshNotesTheme.colors.ember,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ),
+                shape = AshSmallShape
+            ) {
+                Text(text = stringResource(R.string.settings_workspaces_new_action))
+            }
+        }
+    }
+
+    if (showNewWorkspaceDialog) {
+        AshTextInputDialog(
+            title = stringResource(R.string.dialog_new_workspace_title),
+            label = stringResource(R.string.field_workspace_name_label),
+            confirmLabel = stringResource(R.string.action_create),
+            cancelLabel = stringResource(R.string.action_cancel),
+            maxLength = 40,
+            allowBlank = false,
+            blankFallbackValue = "",
+            onConfirm = { name ->
+                if (name.isNotBlank()) {
+                    viewModel.createWorkspace(name, errorEmptyMsg, errorTooLongMsg, errorDuplicateMsg)
+                    showNewWorkspaceDialog = false
+                }
+            },
+            onDismiss = { showNewWorkspaceDialog = false }
         )
     }
 
@@ -262,8 +350,9 @@ fun SettingsScreen(
                 // 3. Workspaces
                 SettingRow(
                     title = stringResource(R.string.settings_workspaces_title),
-                    description = stringResource(R.string.settings_workspaces_desc),
-                    isAvailable = false
+                    description = settingsContent.activeWorkspaceName,
+                    isAvailable = true,
+                    onClick = { showWorkspacesDialog = true }
                 )
                 HorizontalDivider(
                     color = AshNotesTheme.colors.line,

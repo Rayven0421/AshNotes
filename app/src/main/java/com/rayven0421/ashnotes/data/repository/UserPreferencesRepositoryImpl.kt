@@ -25,6 +25,7 @@ class UserPreferencesRepositoryImpl @Inject constructor(
     private object PreferencesKeys {
         val NOTE_SORT_OPTION = stringPreferencesKey("note_sort_option")
         val BIOMETRIC_ENABLED = booleanPreferencesKey("biometric_enabled")
+        val ACTIVE_WORKSPACE_ID = stringPreferencesKey("active_workspace_id")
     }
 
     override val noteSortOption: Flow<NoteSortOption> = context.dataStore.data
@@ -51,6 +52,17 @@ class UserPreferencesRepositoryImpl @Inject constructor(
     override suspend fun setBiometricEnabled(enabled: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.BIOMETRIC_ENABLED] = enabled
+        }
+    }
+
+    override val activeWorkspaceId: Flow<String?> = context.dataStore.data
+        .map { preferences ->
+            preferences[PreferencesKeys.ACTIVE_WORKSPACE_ID]
+        }
+
+    override suspend fun setActiveWorkspaceId(id: String) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ACTIVE_WORKSPACE_ID] = id
         }
     }
 }

@@ -175,7 +175,13 @@ fun NoteRow(
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text(stringResource(R.string.note_menu_archive)) },
+                            text = {
+                                Text(
+                                    stringResource(
+                                        if (note.isArchived) R.string.note_menu_unarchive else R.string.note_menu_archive
+                                    )
+                                )
+                            },
                             onClick = {
                                 showMenu = false
                                 onToggleArchive(note.id)

@@ -207,4 +207,51 @@ class DaoTest {
         val categories = database.categoryDao().observeCategories().first()
         assertTrue(categories.isNotEmpty())
     }
+
+    @Test
+    fun notesAndBudgets_filteredByWorkspaceId_neverCrossWorkspaces() = runBlocking {
+        val noteDao = database.noteDao()
+        val budgetDao = database.budgetDao()
+        val workspaceDao = database.workspaceDao()
+
+        workspaceDao.insertWorkspace(WorkspaceEntity(id = "workspace_a", name = "Workspace A"))
+        workspaceDao.insertWorkspace(WorkspaceEntity(id = "workspace_b", name = "Workspace B"))
+
+        noteDao.insertNote(NoteEntity(id = "n_a", workspaceId = "workspace_a", title = "Note A"))
+        noteDao.insertNote(NoteEntity(id = "n_b", workspaceId = "workspace_b", title = "Note B"))
+
+        budgetDao.insertBudget(BudgetEntity(id = "b_a", workspaceId = "workspace_a", name = "Budget A", amountMinor = 100L, startDate = 0L, endDate = 0L))
+        budgetDao.insertBudget(BudgetEntity(id = "b_b", workspaceId = "workspace_b", name = "Budget B", amountMinor = 200L, startDate = 0L, endDate = 0L))
+
+        val notesA = noteDao.observeNotesByUpdated("workspace_a").first()
+        val notesB = noteDao.observeNotesByUpdated("workspace_b").first()
+
+        assertEquals(1, notesA.size)
+        assertEquals("n_a", notesA[0].id)
+        assertEquals(1, notesB.size)
+        assertEquals("n_b", notesB[0].id)
+
+        val budgetsA = budgetDao.observeBudgets("workspace_a").first()
+        val budgetsB = budgetDao.observeBudgets("workspace_b").first()
+
+        assertEquals(1, budgetsA.size)
+        assertEquals("b_a", budgetsA[0].id)
+        assertEquals(1, budgetsB.size)
+        assertEquals("b_b", budgetsB[0].id)
+    }
+
+    @Test
+    fun noteDao_observeNotes_filtersByIsArchived() = runBlocking {
+        val noteDao = database.noteDao()
+        noteDao.insertNote(NoteEntity(id = "n_active", workspaceId = "w1", title = "Active Note", isArchived = false))
+        noteDao.insertNote(NoteEntity(id = "n_archived", workspaceId = "w1", title = "Archived Note", isArchived = true))
+
+        val activeList = noteDao.observeNotesByUpdated("w1", query = "", isArchived = false).first()
+        assertEquals(1, activeList.size)
+        assertEquals("n_active", activeList[0].id)
+
+        val archivedList = noteDao.observeNotesByUpdated("w1", query = "", isArchived = true).first()
+        assertEquals(1, archivedList.size)
+        assertEquals("n_archived", archivedList[0].id)
+    }
 }

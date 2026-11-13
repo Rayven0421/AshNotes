@@ -11,6 +11,7 @@ import com.rayven0421.ashnotes.data.local.dao.BudgetDao
 import com.rayven0421.ashnotes.data.local.dao.CategoryDao
 import com.rayven0421.ashnotes.data.local.dao.ExpenseDao
 import com.rayven0421.ashnotes.data.local.dao.NoteDao
+import com.rayven0421.ashnotes.data.local.dao.WorkspaceDao
 import com.rayven0421.ashnotes.data.mapper.NoteSizeChecker
 import com.rayven0421.ashnotes.data.mapper.RestoreMergeDecision
 import com.rayven0421.ashnotes.data.mapper.budgetEntityFromMap
@@ -18,6 +19,7 @@ import com.rayven0421.ashnotes.data.mapper.categoryEntityFromMap
 import com.rayven0421.ashnotes.data.mapper.expenseEntityFromMap
 import com.rayven0421.ashnotes.data.mapper.noteEntityFromMap
 import com.rayven0421.ashnotes.data.mapper.toMap
+import com.rayven0421.ashnotes.data.mapper.workspaceEntityFromMap
 import com.rayven0421.ashnotes.domain.model.CloudBackupError
 import com.rayven0421.ashnotes.domain.model.CloudBackupResult
 import com.rayven0421.ashnotes.domain.repository.CloudBackupRepository
@@ -34,6 +36,7 @@ class CloudBackupRepositoryImpl @Inject constructor(
     private val firestore: FirebaseFirestore,
     private val firebaseAuth: FirebaseAuth,
     private val database: AshNotesDatabase,
+    private val workspaceDao: WorkspaceDao,
     private val noteDao: NoteDao,
     private val budgetDao: BudgetDao,
     private val expenseDao: ExpenseDao,
@@ -45,6 +48,7 @@ class CloudBackupRepositoryImpl @Inject constructor(
             ?: return CloudBackupResult.Error(CloudBackupError.NOT_SIGNED_IN)
 
         return try {
+            val workspaces = workspaceDao.getAllWorkspacesIncludingDeleted()
             val categories = categoryDao.getAllCategoriesIncludingDeleted()
             val budgets = budgetDao.getAllBudgetsIncludingDeleted()
             val notes = noteDao.getAllNotesIncludingDeleted()
@@ -55,6 +59,10 @@ class CloudBackupRepositoryImpl @Inject constructor(
 
             val operations = mutableListOf<Pair<DocumentReference, Map<String, Any?>>>()
 
+            workspaces.forEach { workspace ->
+                val ref = firestore.collection("users").document(uid).collection("workspaces").document(workspace.id)
+                operations.add(ref to workspace.toMap())
+            }
             categories.forEach { category ->
                 val ref = firestore.collection("users").document(uid).collection("categories").document(category.id)
                 operations.add(ref to category.toMap())
@@ -85,7 +93,7 @@ class CloudBackupRepositoryImpl @Inject constructor(
                 }
             }
 
-            val uploadedCount = categories.size + budgets.size + validNotes.size + expenses.size
+            val uploadedCount = workspaces.size + categories.size + budgets.size + validNotes.size + expenses.size
             CloudBackupResult.Success(uploaded = uploadedCount, skippedLarge = skippedLargeCount)
         } catch (e: TimeoutCancellationException) {
             CloudBackupResult.Error(CloudBackupError.NETWORK)
@@ -101,6 +109,9 @@ class CloudBackupRepositoryImpl @Inject constructor(
             ?: return CloudBackupResult.Error(CloudBackupError.NOT_SIGNED_IN)
 
         return try {
+            val workspacesTask = firestore.collection("users").document(uid).collection("workspaces").get()
+            val workspacesSnapshot = withTimeout(15_000L) { workspacesTask.awaitTask() }
+
             val categoriesTask = firestore.collection("users").document(uid).collection("categories").get()
             val categoriesSnapshot = withTimeout(15_000L) { categoriesTask.awaitTask() }
 
@@ -113,11 +124,15 @@ class CloudBackupRepositoryImpl @Inject constructor(
             val expensesTask = firestore.collection("users").document(uid).collection("expenses").get()
             val expensesSnapshot = withTimeout(15_000L) { expensesTask.awaitTask() }
 
+            val localWorkspaceIds = workspaceDao.getAllWorkspacesIncludingDeleted().map { it.id }.toSet()
             val localCategoryIds = categoryDao.getAllCategoriesIncludingDeleted().map { it.id }.toSet()
             val localBudgetIds = budgetDao.getAllBudgetsIncludingDeleted().map { it.id }.toSet()
             val localNoteIds = noteDao.getAllNotesIncludingDeleted().map { it.id }.toSet()
             val localExpenseIds = expenseDao.getAllExpensesIncludingDeleted().map { it.id }.toSet()
 
+            val remoteWorkspaces = workspacesSnapshot.documents.mapNotNull { doc ->
+                doc.data?.let { workspaceEntityFromMap(it) }
+            }
             val remoteCategories = categoriesSnapshot.documents.mapNotNull { doc ->
                 doc.data?.let { categoryEntityFromMap(it) }
             }
@@ -131,11 +146,17 @@ class CloudBackupRepositoryImpl @Inject constructor(
                 doc.data?.let { expenseEntityFromMap(it) }
             }
 
+            val workspacesToInsert = RestoreMergeDecision.filterNewItems(remoteWorkspaces, localWorkspaceIds) { it.id }
             val categoriesToInsert = RestoreMergeDecision.filterNewItems(remoteCategories, localCategoryIds) { it.id }
             val budgetsToInsert = RestoreMergeDecision.filterNewItems(remoteBudgets, localBudgetIds) { it.id }
             val notesToInsert = RestoreMergeDecision.filterNewItems(remoteNotes, localNoteIds) { it.id }
             val expensesToInsert = RestoreMergeDecision.filterNewItems(remoteExpenses, localExpenseIds) { it.id }
 
+            if (workspacesToInsert.isNotEmpty()) {
+                database.withTransaction {
+                    workspaceDao.insertWorkspaces(workspacesToInsert)
+                }
+            }
             if (categoriesToInsert.isNotEmpty()) {
                 database.withTransaction {
                     categoryDao.insertCategories(categoriesToInsert)
@@ -157,7 +178,7 @@ class CloudBackupRepositoryImpl @Inject constructor(
                 }
             }
 
-            val totalAdded = categoriesToInsert.size + budgetsToInsert.size + notesToInsert.size + expensesToInsert.size
+            val totalAdded = workspacesToInsert.size + categoriesToInsert.size + budgetsToInsert.size + notesToInsert.size + expensesToInsert.size
             CloudBackupResult.Success(added = totalAdded)
         } catch (e: TimeoutCancellationException) {
             CloudBackupResult.Error(CloudBackupError.NETWORK)

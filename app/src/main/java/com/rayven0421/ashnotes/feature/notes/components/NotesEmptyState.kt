@@ -17,7 +17,8 @@ import com.rayven0421.ashnotes.core.designsystem.AshNotesTheme
 @Composable
 fun NotesEmptyState(
     onNewNoteClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isArchivedView: Boolean = false
 ) {
     Box(
         modifier = modifier.fillMaxSize(),
@@ -28,12 +29,14 @@ fun NotesEmptyState(
             verticalArrangement = Arrangement.spacedBy(AshNotesTheme.spacing.large)
         ) {
             Text(
-                text = stringResource(R.string.notes_empty_message),
+                text = stringResource(if (isArchivedView) R.string.notes_empty_archived else R.string.notes_empty_message),
                 style = MaterialTheme.typography.bodyLarge,
                 color = AshNotesTheme.colors.textMuted
             )
-            OutlinedButton(onClick = onNewNoteClick) {
-                Text(text = stringResource(R.string.notes_new_note))
+            if (!isArchivedView) {
+                OutlinedButton(onClick = onNewNoteClick) {
+                    Text(text = stringResource(R.string.notes_new_note))
+                }
             }
         }
     }

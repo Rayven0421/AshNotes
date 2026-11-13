@@ -225,15 +225,18 @@ fun AshNotesNavHost(
                 val uiState by viewModel.uiState.collectAsStateWithLifecycle()
                 val selectedIds by viewModel.selectedIds.collectAsStateWithLifecycle()
                 val sortOption by viewModel.sortOption.collectAsStateWithLifecycle()
+                val isArchivedView by viewModel.isArchivedView.collectAsStateWithLifecycle()
                 NotesScreen(
                     uiState = uiState,
                     selectedIds = selectedIds,
                     sortOption = sortOption,
+                    isArchivedView = isArchivedView,
                     modifier = Modifier.padding(innerPadding),
                     onSortOptionSelected = { option -> viewModel.setSortOption(option) },
                     onSearchQueryChanged = { query ->
                         viewModel.updateSearchQuery(query)
                     },
+                    onToggleArchivedView = { viewModel.toggleArchivedView() },
                     onNoteClick = { noteId ->
                         navController.navigate(Screen.Editor(noteId))
                     },
@@ -251,7 +254,8 @@ fun AshNotesNavHost(
                     onSelectAllNotes = { allIds -> viewModel.selectAllNotes(allIds) },
                     onClearSelection = { viewModel.clearSelection() },
                     onBulkPinSelected = { isPinned -> viewModel.bulkPinSelected(isPinned) },
-                    onBulkArchiveSelected = { isArchived -> viewModel.bulkArchiveSelected(isArchived) },
+                    onBulkArchiveSelected = { isArchived, onCompleted -> viewModel.bulkArchiveSelected(isArchived, onCompleted) },
+                    onBulkArchiveNotes = { ids, isArchived -> viewModel.bulkArchiveNotes(ids, isArchived) },
                     onBulkDeleteSelected = { onDeleted -> viewModel.bulkDeleteSelected(onDeleted) },
                     onBulkRestoreNotes = { ids -> viewModel.bulkRestoreNotes(ids) }
                 )

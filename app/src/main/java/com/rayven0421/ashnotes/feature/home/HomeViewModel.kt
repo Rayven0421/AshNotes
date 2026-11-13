@@ -47,28 +47,34 @@ class HomeViewModel @Inject constructor(
     private val _errorMessageResId = MutableStateFlow<Int?>(null)
     val errorMessageResId: StateFlow<Int?> = _errorMessageResId.asStateFlow()
 
-    val uiState: StateFlow<UiState<HomeContent>> = workspaceRepository.observeActiveWorkspaceId()
-        .flatMapLatest { workspaceId ->
+    val uiState: StateFlow<UiState<HomeContent>> = combine(
+        workspaceRepository.activeWorkspaceId,
+        workspaceRepository.workspaces
+    ) { activeId, workspaces ->
+        val activeWs = workspaces.firstOrNull { it.id == activeId }
+        Pair(activeId, activeWs?.name ?: "Personal")
+    }
+        .flatMapLatest { (workspaceId, activeWorkspaceName) ->
             combine(
                 noteRepository.observeNotes(workspaceId),
                 budgetRepository.observeBudgets(workspaceId),
                 categoryRepository.observeCategories(),
                 authRepository.currentUser
             ) { notes, budgets, categories, currentUser ->
-                Quintuple(notes, budgets, categories, currentUser)
+                Quintuple(notes, budgets, categories, currentUser, activeWorkspaceName)
             }
         }
-        .flatMapLatest { (notes, budgets, categories, currentUser) ->
+        .flatMapLatest { (notes, budgets, categories, currentUser, activeWorkspaceName) ->
             val activeBudget = budgets.firstOrNull { !it.isArchived }
             if (activeBudget == null) {
-                flowOf(Sextuple(notes, null as Budget?, emptyList<Expense>(), categories, currentUser?.email))
+                flowOf(Sextuple(notes, null as Budget?, emptyList<Expense>(), categories, currentUser?.email, activeWorkspaceName))
             } else {
                 expenseRepository.observeExpenses(activeBudget.id).map { expenses ->
-                    Sextuple(notes, activeBudget, expenses, categories, currentUser?.email)
+                    Sextuple(notes, activeBudget, expenses, categories, currentUser?.email, activeWorkspaceName)
                 }
             }
         }
-        .map { (notes, activeBudget, expenses, categories, userEmail) ->
+        .map { (notes, activeBudget, expenses, categories, userEmail, activeWorkspaceName) ->
             val recentNotes = notes
                 .filter { !it.isArchived }
                 .sortedByDescending { it.updatedAt }
@@ -121,7 +127,8 @@ class HomeViewModel @Inject constructor(
                     hasBudget = hasBudget,
                     notes = recentNotes,
                     recentExpenses = recentExpenses,
-                    userEmail = userEmail
+                    userEmail = userEmail,
+                    activeWorkspaceName = activeWorkspaceName
                 )
             ) as UiState<HomeContent>
         }
@@ -160,19 +167,21 @@ class HomeViewModel @Inject constructor(
     }
 }
 
-private data class Quintuple<A, B, C, D>(
-    val first: A,
-    val second: B,
-    val third: C,
-    val fourth: D
-)
-
-private data class Sextuple<A, B, C, D, E>(
+private data class Quintuple<A, B, C, D, E>(
     val first: A,
     val second: B,
     val third: C,
     val fourth: D,
     val fifth: E
+)
+
+private data class Sextuple<A, B, C, D, E, F>(
+    val first: A,
+    val second: B,
+    val third: C,
+    val fourth: D,
+    val fifth: E,
+    val sixth: F
 )
 
 data class HomeContent(
@@ -183,7 +192,8 @@ data class HomeContent(
     val hasBudget: Boolean,
     val notes: List<HomeNoteItem>,
     val recentExpenses: List<HomeExpenseItem> = emptyList(),
-    val userEmail: String?
+    val userEmail: String?,
+    val activeWorkspaceName: String = "Personal"
 )
 
 data class HomeNoteItem(

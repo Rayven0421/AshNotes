@@ -25,11 +25,18 @@ fun NotesContentArea(
     onToggleArchive: (String) -> Unit,
     onRenameRequest: (NoteItem) -> Unit,
     onDeleteRequest: (NoteItem) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isArchivedView: Boolean = false
 ) {
+    val effectiveArchivedView = isArchivedView || (uiState as? UiState.Success)?.data?.isArchivedView == true
+
     when (uiState) {
         is UiState.Empty, is UiState.Loading -> {
-            NotesEmptyState(onNewNoteClick = onNewNoteClick, modifier = modifier)
+            NotesEmptyState(
+                onNewNoteClick = onNewNoteClick,
+                isArchivedView = effectiveArchivedView,
+                modifier = modifier
+            )
         }
         is UiState.Error -> {
             Box(
@@ -46,7 +53,11 @@ fun NotesContentArea(
         is UiState.Success -> {
             val content = uiState.data
             if (content.pinnedNotes.isEmpty() && content.otherNotes.isEmpty()) {
-                NotesEmptyState(onNewNoteClick = onNewNoteClick, modifier = modifier)
+                NotesEmptyState(
+                    onNewNoteClick = onNewNoteClick,
+                    isArchivedView = effectiveArchivedView,
+                    modifier = modifier
+                )
             } else {
                 NotesList(
                     pinned = content.pinnedNotes,
@@ -60,6 +71,7 @@ fun NotesContentArea(
                     onToggleArchive = onToggleArchive,
                     onRenameRequest = onRenameRequest,
                     onDeleteRequest = onDeleteRequest,
+                    isArchivedView = effectiveArchivedView,
                     modifier = modifier
                 )
             }

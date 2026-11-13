@@ -45,6 +45,9 @@ class NotesViewModel @Inject constructor(
         initialValue = NoteSortOption.UPDATED
     )
 
+    private val _isArchivedView = MutableStateFlow(false)
+    val isArchivedView: StateFlow<Boolean> = _isArchivedView.asStateFlow()
+
     private val _errorMessageResId = MutableStateFlow<Int?>(null)
     val errorMessageResId: StateFlow<Int?> = _errorMessageResId.asStateFlow()
 
@@ -52,17 +55,18 @@ class NotesViewModel @Inject constructor(
         workspaceRepository.observeActiveWorkspaceId(),
         _searchQuery,
         _selectedIds,
-        userPreferencesRepository.noteSortOption
-    ) { workspaceId, query, selectedIds, sortOption ->
-        Quadruple(workspaceId, query, selectedIds, sortOption)
+        userPreferencesRepository.noteSortOption,
+        _isArchivedView
+    ) { workspaceId, query, selectedIds, sortOption, isArchived ->
+        Quintuple(workspaceId, query, selectedIds, sortOption, isArchived)
     }
-        .flatMapLatest { (workspaceId, query, currentSelectedIds, sortOption) ->
-            noteRepository.observeNotes(workspaceId, query, sortOption).map { notes ->
-                Triple(notes, currentSelectedIds, sortOption)
+        .flatMapLatest { (workspaceId, query, currentSelectedIds, sortOption, isArchived) ->
+            noteRepository.observeNotes(workspaceId, query, sortOption, isArchived).map { notes ->
+                Quintuple(notes, currentSelectedIds, sortOption, isArchived, query)
             }
         }
-        .map { (notes, currentSelectedIds, sortOption) ->
-            if (notes.isEmpty() && _searchQuery.value.isEmpty()) {
+        .map { (notes, currentSelectedIds, sortOption, isArchived, query) ->
+            if (notes.isEmpty() && query.isEmpty()) {
                 if (currentSelectedIds.isNotEmpty()) {
                     _selectedIds.value = emptySet()
                 }
@@ -84,15 +88,16 @@ class NotesViewModel @Inject constructor(
                         isArchived = note.isArchived
                     )
                 }
-                val pinned = noteItems.filter { it.isPinned && !it.isArchived }
-                val others = noteItems.filter { !it.isPinned && !it.isArchived }
+                val pinned = noteItems.filter { it.isPinned }
+                val others = noteItems.filter { !it.isPinned }
                 UiState.Success(
                     NotesContent(
-                        searchQuery = _searchQuery.value,
+                        searchQuery = query,
                         pinnedNotes = pinned,
                         otherNotes = others,
                         selectedIds = cleanedSelectedIds,
-                        sortOption = sortOption
+                        sortOption = sortOption,
+                        isArchivedView = isArchived
                     )
                 ) as UiState<NotesContent>
             }
@@ -114,6 +119,16 @@ class NotesViewModel @Inject constructor(
         viewModelScope.launch {
             userPreferencesRepository.setNoteSortOption(option)
         }
+    }
+
+    fun toggleArchivedView() {
+        _isArchivedView.update { !it }
+        clearSelection()
+    }
+
+    fun setArchivedView(isArchived: Boolean) {
+        _isArchivedView.value = isArchived
+        clearSelection()
     }
 
     fun toggleSelectNote(noteId: String) {
@@ -138,11 +153,18 @@ class NotesViewModel @Inject constructor(
         }
     }
 
-    fun bulkArchiveSelected(isArchived: Boolean) {
+    fun bulkArchiveSelected(isArchived: Boolean, onCompleted: ((List<String>) -> Unit)? = null) {
         val ids = _selectedIds.value.toList()
         viewModelScope.launch {
             noteRepository.bulkArchiveNotes(ids, isArchived)
             clearSelection()
+            onCompleted?.invoke(ids)
+        }
+    }
+
+    fun bulkArchiveNotes(ids: List<String>, isArchived: Boolean) {
+        viewModelScope.launch {
+            noteRepository.bulkArchiveNotes(ids, isArchived)
         }
     }
 
@@ -222,14 +244,21 @@ class NotesViewModel @Inject constructor(
     }
 }
 
-data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
+private data class Quintuple<A, B, C, D, E>(
+    val first: A,
+    val second: B,
+    val third: C,
+    val fourth: D,
+    val fifth: E
+)
 
 data class NotesContent(
     val searchQuery: String = "",
     val pinnedNotes: List<NoteItem> = emptyList(),
     val otherNotes: List<NoteItem> = emptyList(),
     val selectedIds: Set<String> = emptySet(),
-    val sortOption: NoteSortOption = NoteSortOption.UPDATED
+    val sortOption: NoteSortOption = NoteSortOption.UPDATED,
+    val isArchivedView: Boolean = false
 )
 
 data class NoteItem(

@@ -11,14 +11,14 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface NoteDao {
-    @Query("SELECT * FROM notes WHERE workspaceId = :workspaceId AND deletedAt IS NULL AND (title LIKE '%' || :query || '%' OR :query = '') ORDER BY isPinned DESC, updatedAt DESC")
-    fun observeNotesByUpdated(workspaceId: String, query: String = ""): Flow<List<NoteEntity>>
+    @Query("SELECT * FROM notes WHERE workspaceId = :workspaceId AND deletedAt IS NULL AND isArchived = :isArchived AND (title LIKE '%' || :query || '%' OR :query = '') ORDER BY isPinned DESC, updatedAt DESC")
+    fun observeNotesByUpdated(workspaceId: String, query: String = "", isArchived: Boolean = false): Flow<List<NoteEntity>>
 
-    @Query("SELECT * FROM notes WHERE workspaceId = :workspaceId AND deletedAt IS NULL AND (title LIKE '%' || :query || '%' OR :query = '') ORDER BY isPinned DESC, createdAt DESC")
-    fun observeNotesByCreated(workspaceId: String, query: String = ""): Flow<List<NoteEntity>>
+    @Query("SELECT * FROM notes WHERE workspaceId = :workspaceId AND deletedAt IS NULL AND isArchived = :isArchived AND (title LIKE '%' || :query || '%' OR :query = '') ORDER BY isPinned DESC, createdAt DESC")
+    fun observeNotesByCreated(workspaceId: String, query: String = "", isArchived: Boolean = false): Flow<List<NoteEntity>>
 
-    @Query("SELECT * FROM notes WHERE workspaceId = :workspaceId AND deletedAt IS NULL AND (title LIKE '%' || :query || '%' OR :query = '') ORDER BY isPinned DESC, title ASC")
-    fun observeNotesByTitle(workspaceId: String, query: String = ""): Flow<List<NoteEntity>>
+    @Query("SELECT * FROM notes WHERE workspaceId = :workspaceId AND deletedAt IS NULL AND isArchived = :isArchived AND (title LIKE '%' || :query || '%' OR :query = '') ORDER BY isPinned DESC, title ASC")
+    fun observeNotesByTitle(workspaceId: String, query: String = "", isArchived: Boolean = false): Flow<List<NoteEntity>>
 
     @Query("SELECT * FROM notes WHERE id = :id AND deletedAt IS NULL")
     suspend fun getNoteById(id: String): NoteEntity?

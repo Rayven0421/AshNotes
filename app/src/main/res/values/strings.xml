@@ -94,6 +94,7 @@
     <string name="note_menu_pin">Pin</string>
     <string name="note_menu_unpin">Unpin</string>
     <string name="note_menu_archive">Archive</string>
+    <string name="note_menu_unarchive">Unarchive</string>
     <string name="note_menu_delete">Delete</string>
     <string name="note_menu_more">More options</string>
     <string name="dialog_rename_title">Rename note</string>
@@ -107,12 +108,17 @@
     <string name="action_done">Done</string>
     <string name="snackbar_note_deleted">Note deleted</string>
     <string name="snackbar_note_archived">Note archived</string>
+    <string name="snackbar_note_unarchived">Note unarchived</string>
     <string name="dialog_new_note_title">New note</string>
     <string name="field_note_title_hint">Note title</string>
     <string name="field_note_title_label">Title</string>
     <string name="note_title_untitled">Untitled</string>
     <string name="action_create">Create</string>
     <string name="notes_empty_preview">Empty note</string>
+    <string name="notes_archived_title">Archived Notes</string>
+    <string name="notes_view_archived">Archived notes</string>
+    <string name="notes_empty_archived">No archived notes.</string>
+    <string name="action_exit_archived">Exit archive</string>
     <string name="error_failed_to_load_notes">Failed to load notes</string>
     <string name="error_failed_to_load_home">Failed to load home data</string>
     <string name="error_failed_to_create_note">Failed to create note</string>
@@ -139,12 +145,17 @@
         <item quantity="one">%d note archived</item>
         <item quantity="other">%d notes archived</item>
     </plurals>
+    <plurals name="snackbar_bulk_unarchived">
+        <item quantity="one">%d note unarchived</item>
+        <item quantity="other">%d notes unarchived</item>
+    </plurals>
 
     <!-- Sort strings -->
     <string name="notes_sort_label">Sort notes</string>
     <string name="notes_sort_updated">Updated (newest first)</string>
     <string name="notes_sort_created">Created</string>
     <string name="notes_sort_title_asc">Title A to Z</string>
+    <string name="notes_sort_archived">Archived</string>
 
     <!-- Editor strings -->
     <string name="block_unknown_fallback">Unsupported block: %s</string>
@@ -185,4 +196,14 @@
     <string name="pagination_previous">Previous</string>
     <string name="pagination_page_format">Page %1$d of %2$d</string>
     <string name="pagination_next">Next</string>
+
+    <!-- Workspace strings -->
+    <string name="home_active_workspace">Workspace: %s</string>
+    <string name="settings_workspaces_dialog_title">Workspaces</string>
+    <string name="settings_workspaces_new_action">New workspace</string>
+    <string name="dialog_new_workspace_title">New workspace</string>
+    <string name="field_workspace_name_label">Workspace name</string>
+    <string name="error_workspace_empty">Enter a workspace name</string>
+    <string name="error_workspace_too_long">Name must be 40 characters or less</string>
+    <string name="error_workspace_duplicate">A workspace with this name already exists</string>
 </resources>

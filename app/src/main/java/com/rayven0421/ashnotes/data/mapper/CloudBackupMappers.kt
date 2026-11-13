@@ -4,6 +4,7 @@ import com.rayven0421.ashnotes.data.local.entity.BudgetEntity
 import com.rayven0421.ashnotes.data.local.entity.CategoryEntity
 import com.rayven0421.ashnotes.data.local.entity.ExpenseEntity
 import com.rayven0421.ashnotes.data.local.entity.NoteEntity
+import com.rayven0421.ashnotes.data.local.entity.WorkspaceEntity
 
 object NoteSizeChecker {
     const val MAX_NOTE_BYTES: Long = 900 * 1024 // 900 KB threshold (Firestore doc limit is 1 MiB)
@@ -116,6 +117,22 @@ fun categoryEntityFromMap(map: Map<String, Any?>): CategoryEntity = CategoryEnti
     icon = map["icon"] as? String ?: "",
     color = map["color"] as? String ?: "",
     isDefault = map["isDefault"] as? Boolean ?: false,
+    createdAt = (map["createdAt"] as? Number)?.toLong() ?: 0L,
+    updatedAt = (map["updatedAt"] as? Number)?.toLong() ?: 0L,
+    deletedAt = (map["deletedAt"] as? Number)?.toLong()
+)
+
+fun WorkspaceEntity.toMap(): Map<String, Any?> = mapOf(
+    "id" to id,
+    "name" to name,
+    "createdAt" to createdAt,
+    "updatedAt" to updatedAt,
+    "deletedAt" to deletedAt
+)
+
+fun workspaceEntityFromMap(map: Map<String, Any?>): WorkspaceEntity = WorkspaceEntity(
+    id = map["id"] as? String ?: "",
+    name = map["name"] as? String ?: "",
     createdAt = (map["createdAt"] as? Number)?.toLong() ?: 0L,
     updatedAt = (map["updatedAt"] as? Number)?.toLong() ?: 0L,
     deletedAt = (map["deletedAt"] as? Number)?.toLong()

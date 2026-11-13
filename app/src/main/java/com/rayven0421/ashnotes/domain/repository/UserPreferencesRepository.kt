@@ -9,4 +9,7 @@ interface UserPreferencesRepository {
 
     val isBiometricEnabled: Flow<Boolean>
     suspend fun setBiometricEnabled(enabled: Boolean)
+
+    val activeWorkspaceId: Flow<String?>
+    suspend fun setActiveWorkspaceId(id: String)
 }

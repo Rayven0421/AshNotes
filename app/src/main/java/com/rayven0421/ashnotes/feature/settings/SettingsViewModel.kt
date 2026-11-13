@@ -7,6 +7,9 @@ import com.rayven0421.ashnotes.core.common.UiState
 import com.rayven0421.ashnotes.domain.model.AuthUser
 import com.rayven0421.ashnotes.domain.model.CloudBackupError
 import com.rayven0421.ashnotes.domain.model.CloudBackupResult
+import com.rayven0421.ashnotes.domain.model.CreateWorkspaceResult
+import com.rayven0421.ashnotes.domain.model.Workspace
+import com.rayven0421.ashnotes.domain.model.WorkspaceNameValidationError
 import com.rayven0421.ashnotes.domain.repository.AuthRepository
 import com.rayven0421.ashnotes.domain.repository.CloudBackupRepository
 import com.rayven0421.ashnotes.domain.repository.SessionRepository
@@ -37,7 +40,10 @@ sealed interface SyncDialogState {
 data class SettingsContent(
     val currentUser: AuthUser? = null,
     val isLocalMode: Boolean = false,
-    val isBiometricEnabled: Boolean = false
+    val isBiometricEnabled: Boolean = false,
+    val workspaces: List<Workspace> = emptyList(),
+    val activeWorkspaceId: String = "default_workspace",
+    val activeWorkspaceName: String = "Personal"
 )
 
 @HiltViewModel
@@ -52,13 +58,19 @@ class SettingsViewModel @Inject constructor(
     val uiState: StateFlow<UiState<SettingsContent>> = combine(
         authRepository.currentUser,
         sessionRepository.isLocalMode,
-        userPreferencesRepository.isBiometricEnabled
-    ) { user, isLocal, biometricEnabled ->
+        userPreferencesRepository.isBiometricEnabled,
+        workspaceRepository.workspaces,
+        workspaceRepository.activeWorkspaceId
+    ) { user, isLocal, biometricEnabled, workspaces, activeId ->
+        val activeWs = workspaces.firstOrNull { it.id == activeId }
         UiState.Success(
             SettingsContent(
                 currentUser = user,
                 isLocalMode = isLocal,
-                isBiometricEnabled = biometricEnabled
+                isBiometricEnabled = biometricEnabled,
+                workspaces = workspaces,
+                activeWorkspaceId = activeId,
+                activeWorkspaceName = activeWs?.name ?: "Personal"
             )
         )
     }.stateIn(
@@ -119,6 +131,35 @@ class SettingsViewModel @Inject constructor(
                 }
                 is CloudBackupResult.Error -> {
                     _syncDialogState.value = SyncDialogState.Error(mapErrorToResId(result.error))
+                }
+            }
+        }
+    }
+
+    fun selectWorkspace(workspaceId: String) {
+        viewModelScope.launch {
+            workspaceRepository.setActive(workspaceId)
+        }
+    }
+
+    fun createWorkspace(
+        name: String,
+        errorEmptyMsg: String,
+        errorTooLongMsg: String,
+        errorDuplicateMsg: String
+    ) {
+        viewModelScope.launch {
+            when (val result = workspaceRepository.createWorkspace(name)) {
+                is CreateWorkspaceResult.Success -> {
+                    // Automatically active upon creation in repo
+                }
+                is CreateWorkspaceResult.Error -> {
+                    val message = when (result.reason) {
+                        WorkspaceNameValidationError.Empty -> errorEmptyMsg
+                        WorkspaceNameValidationError.TooLong -> errorTooLongMsg
+                        WorkspaceNameValidationError.Duplicate -> errorDuplicateMsg
+                    }
+                    _userMessage.emit(message)
                 }
             }
         }

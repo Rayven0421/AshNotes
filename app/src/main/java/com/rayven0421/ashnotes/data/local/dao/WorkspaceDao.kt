@@ -16,8 +16,14 @@ interface WorkspaceDao {
     @Query("SELECT * FROM workspaces WHERE id = :id AND deletedAt IS NULL")
     suspend fun getWorkspaceById(id: String): WorkspaceEntity?
 
+    @Query("SELECT * FROM workspaces")
+    suspend fun getAllWorkspacesIncludingDeleted(): List<WorkspaceEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertWorkspace(workspace: WorkspaceEntity)
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertWorkspaces(workspaces: List<WorkspaceEntity>)
 
     @Update
     suspend fun updateWorkspace(workspace: WorkspaceEntity)

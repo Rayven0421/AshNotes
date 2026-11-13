@@ -33,12 +33,16 @@ import com.rayven0421.ashnotes.R
 import com.rayven0421.ashnotes.core.designsystem.AshNotesTheme
 import com.rayven0421.ashnotes.domain.model.NoteSortOption
 
+import androidx.compose.material3.HorizontalDivider
+
 @Composable
 fun NotesSearchRow(
     searchQuery: String,
     onQueryChange: (String) -> Unit,
     currentSortOption: NoteSortOption,
     onSortOptionSelected: (NoteSortOption) -> Unit,
+    isArchivedView: Boolean = false,
+    onToggleArchivedView: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var showMenu by remember { mutableStateOf(false) }
@@ -90,7 +94,7 @@ fun NotesSearchRow(
                 Icon(
                     imageVector = Icons.AutoMirrored.Outlined.Sort,
                     contentDescription = stringResource(R.string.notes_sort_label),
-                    tint = if (currentSortOption != NoteSortOption.UPDATED) AshNotesTheme.colors.ember else AshNotesTheme.colors.textMuted
+                    tint = if (currentSortOption != NoteSortOption.UPDATED || isArchivedView) AshNotesTheme.colors.ember else AshNotesTheme.colors.textMuted
                 )
             }
 
@@ -131,6 +135,19 @@ fun NotesSearchRow(
                     },
                     trailingIcon = {
                         if (currentSortOption == NoteSortOption.TITLE_ASC) {
+                            Icon(Icons.Outlined.Check, contentDescription = null, tint = AshNotesTheme.colors.ember)
+                        }
+                    }
+                )
+                HorizontalDivider(color = AshNotesTheme.colors.line)
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.notes_sort_archived)) },
+                    onClick = {
+                        onToggleArchivedView()
+                        showMenu = false
+                    },
+                    trailingIcon = {
+                        if (isArchivedView) {
                             Icon(Icons.Outlined.Check, contentDescription = null, tint = AshNotesTheme.colors.ember)
                         }
                     }

@@ -1,6 +1,7 @@
 package com.rayven0421.ashnotes.feature.budget
 
 import android.widget.Toast
+import androidx.compose.foundation.border
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -177,93 +178,101 @@ fun BudgetScreen(
         modifier = modifier,
         snackbarHostState = snackbarHostState
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .onGloballyPositioned { coords ->
-                    scrollContainerTop = coords.positionInRoot().y
-                }
-                .verticalScroll(scrollState)
-                .padding(bottom = AshNotesTheme.spacing.listBottomPadding),
-            verticalArrangement = Arrangement.spacedBy(AshNotesTheme.spacing.large)
+        Box(
+            modifier = Modifier.fillMaxSize()
         ) {
-            when (uiState) {
-                is UiState.Empty, is UiState.Loading -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(AshNotesTheme.spacing.emptyStateHeight),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(AshNotesTheme.spacing.large)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .onGloballyPositioned { coords ->
+                        scrollContainerTop = coords.positionInRoot().y
+                    }
+                    .verticalScroll(scrollState)
+                    .padding(bottom = 80.dp),
+                verticalArrangement = Arrangement.spacedBy(AshNotesTheme.spacing.large)
+            ) {
+                when (uiState) {
+                    is UiState.Empty, is UiState.Loading -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(AshNotesTheme.spacing.emptyStateHeight),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(AshNotesTheme.spacing.large)
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.budget_empty_message),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = AshNotesTheme.colors.textMuted
+                                )
+                                OutlinedButton(
+                                    onClick = onCreateBudgetClick,
+                                    shape = AshSmallShape
+                                ) {
+                                    Text(text = stringResource(R.string.budget_empty_action))
+                                }
+                            }
+                        }
+                    }
+                    is UiState.Error -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(AshNotesTheme.spacing.errorStateHeight),
+                            contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = stringResource(R.string.budget_empty_message),
+                                text = uiState.message,
                                 style = MaterialTheme.typography.bodyLarge,
-                                color = AshNotesTheme.colors.textMuted
-                            )
-                            OutlinedButton(
-                                onClick = onCreateBudgetClick,
-                                shape = AshSmallShape
-                            ) {
-                                Text(text = stringResource(R.string.budget_empty_action))
-                            }
-                        }
-                    }
-                }
-                is UiState.Error -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(AshNotesTheme.spacing.errorStateHeight),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = uiState.message,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = AshNotesTheme.colors.over
-                        )
-                    }
-                }
-                is UiState.Success -> {
-                    val successContent = uiState.data
-                    BudgetHero(
-                        content = successContent,
-                        onAddExpenseClick = onAddExpenseClick,
-                        onEditBudgetClick = onEditBudgetClick
-                    )
-
-                    if (successContent.categories.isNotEmpty()) {
-                        CategorySpendingList(categories = successContent.categories)
-                    }
-
-                    if (successContent.transactionGroups.isNotEmpty()) {
-                        TransactionGroupList(
-                            groups = successContent.transactionGroups,
-                            onTransactionClick = onEditExpenseClick,
-                            onHeaderPositioned = { top ->
-                                transactionsHeaderTop = top
-                            }
-                        )
-                        if (successContent.totalPages > 1) {
-                            PaginationControl(
-                                currentPage = successContent.currentPage,
-                                totalPages = successContent.totalPages,
-                                onPreviousPage = { onPageChange(successContent.currentPage - 1) },
-                                onNextPage = { onPageChange(successContent.currentPage + 1) }
+                                color = AshNotesTheme.colors.over
                             )
                         }
-                    } else {
-                        EmptyTransactionsBlock(
+                    }
+                    is UiState.Success -> {
+                        val successContent = uiState.data
+                        BudgetHero(
+                            content = successContent,
                             onAddExpenseClick = onAddExpenseClick,
-                            onHeaderPositioned = { top ->
-                                transactionsHeaderTop = top
-                            }
+                            onEditBudgetClick = onEditBudgetClick
                         )
+
+                        if (successContent.categories.isNotEmpty()) {
+                            CategorySpendingList(categories = successContent.categories)
+                        }
+
+                        if (successContent.transactionGroups.isNotEmpty()) {
+                            TransactionGroupList(
+                                groups = successContent.transactionGroups,
+                                onTransactionClick = onEditExpenseClick,
+                                onHeaderPositioned = { top ->
+                                    transactionsHeaderTop = top
+                                }
+                            )
+                        } else {
+                            EmptyTransactionsBlock(
+                                onAddExpenseClick = onAddExpenseClick,
+                                onHeaderPositioned = { top ->
+                                    transactionsHeaderTop = top
+                                }
+                            )
+                        }
                     }
                 }
+            }
+
+            if (content != null && content.totalPages > 1) {
+                PaginationControl(
+                    currentPage = content.currentPage,
+                    totalPages = content.totalPages,
+                    onPreviousPage = { onPageChange(content.currentPage - 1) },
+                    onNextPage = { onPageChange(content.currentPage + 1) },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = AshNotesTheme.spacing.medium)
+                )
             }
         }
     }
@@ -587,13 +596,17 @@ private fun PaginationControl(
     onNextPage: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val hasPrevious = currentPage > 1
+    val hasNext = currentPage < totalPages
+
     Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = modifier
+            .background(AshNotesTheme.colors.raised, RoundedCornerShape(20.dp))
+            .border(1.dp, AshNotesTheme.colors.line, RoundedCornerShape(20.dp))
+            .padding(horizontal = AshNotesTheme.spacing.medium, vertical = AshNotesTheme.spacing.extraSmall),
+        horizontalArrangement = Arrangement.spacedBy(AshNotesTheme.spacing.medium),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        val hasPrevious = currentPage > 1
-        val hasNext = currentPage < totalPages
 
         Text(
             text = stringResource(R.string.pagination_previous),

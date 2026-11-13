@@ -5,7 +5,7 @@ import com.rayven0421.ashnotes.domain.model.NoteSortOption
 import kotlinx.coroutines.flow.Flow
 
 interface NoteRepository {
-    fun observeNotes(workspaceId: String, searchQuery: String = "", sortOption: NoteSortOption = NoteSortOption.UPDATED): Flow<List<Note>>
+    fun observeNotes(workspaceId: String, searchQuery: String = "", sortOption: NoteSortOption = NoteSortOption.UPDATED, isArchived: Boolean = false): Flow<List<Note>>
     suspend fun getNoteById(id: String): Note?
     suspend fun createNote(workspaceId: String, title: String): String
     suspend fun updateNote(note: Note)

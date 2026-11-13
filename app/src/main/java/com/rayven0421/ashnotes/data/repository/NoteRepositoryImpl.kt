@@ -15,11 +15,11 @@ class NoteRepositoryImpl @Inject constructor(
     private val noteDao: NoteDao
 ) : NoteRepository {
 
-    override fun observeNotes(workspaceId: String, searchQuery: String, sortOption: NoteSortOption): Flow<List<Note>> {
+    override fun observeNotes(workspaceId: String, searchQuery: String, sortOption: NoteSortOption, isArchived: Boolean): Flow<List<Note>> {
         val flow = when (sortOption) {
-            NoteSortOption.UPDATED -> noteDao.observeNotesByUpdated(workspaceId, searchQuery)
-            NoteSortOption.CREATED -> noteDao.observeNotesByCreated(workspaceId, searchQuery)
-            NoteSortOption.TITLE_ASC -> noteDao.observeNotesByTitle(workspaceId, searchQuery)
+            NoteSortOption.UPDATED -> noteDao.observeNotesByUpdated(workspaceId, searchQuery, isArchived)
+            NoteSortOption.CREATED -> noteDao.observeNotesByCreated(workspaceId, searchQuery, isArchived)
+            NoteSortOption.TITLE_ASC -> noteDao.observeNotesByTitle(workspaceId, searchQuery, isArchived)
         }
         return flow.map { entities ->
             entities.map { it.toDomain() }

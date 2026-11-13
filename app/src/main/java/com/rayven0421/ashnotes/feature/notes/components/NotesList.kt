@@ -31,13 +31,24 @@ fun NotesList(
     onToggleArchive: (String) -> Unit,
     onRenameRequest: (NoteItem) -> Unit,
     onDeleteRequest: (NoteItem) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isArchivedView: Boolean = false
 ) {
     LazyColumn(
         modifier = modifier.fillMaxWidth(),
         contentPadding = PaddingValues(bottom = AshNotesTheme.spacing.listBottomPadding),
         verticalArrangement = Arrangement.spacedBy(AshNotesTheme.spacing.none)
     ) {
+        if (isArchivedView) {
+            item {
+                Text(
+                    text = stringResource(R.string.notes_view_archived),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = AshNotesTheme.colors.textMuted,
+                    modifier = Modifier.padding(bottom = AshNotesTheme.spacing.small)
+                )
+            }
+        }
         if (pinned.isNotEmpty()) {
             item {
                 Text(

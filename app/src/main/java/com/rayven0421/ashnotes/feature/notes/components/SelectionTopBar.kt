@@ -33,7 +33,8 @@ fun SelectionTopBar(
     onBulkPin: () -> Unit,
     onBulkArchive: () -> Unit,
     onBulkDelete: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isArchivedView: Boolean = false
 ) {
     val isAllSelected = selectedCount == totalCount && totalCount > 0
 
@@ -83,7 +84,7 @@ fun SelectionTopBar(
             IconButton(onClick = onBulkArchive) {
                 Icon(
                     imageVector = Icons.Outlined.Inventory2,
-                    contentDescription = stringResource(R.string.note_menu_archive),
+                    contentDescription = stringResource(if (isArchivedView) R.string.note_menu_unarchive else R.string.note_menu_archive),
                     tint = AshNotesTheme.colors.textMuted
                 )
             }
