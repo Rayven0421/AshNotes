@@ -46,14 +46,16 @@ fun AshConfirmDialog(
             horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            TextButton(
-                onClick = onDismiss,
-                modifier = Modifier.heightIn(min = AshNotesTheme.spacing.huge)
-            ) {
-                Text(
-                    text = cancelLabel,
-                    color = AshNotesTheme.colors.textMuted
-                )
+            if (cancelLabel.isNotEmpty()) {
+                TextButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.heightIn(min = AshNotesTheme.spacing.huge)
+                ) {
+                    Text(
+                        text = cancelLabel,
+                        color = AshNotesTheme.colors.textMuted
+                    )
+                }
             }
 
             val confirmColor = if (isDestructive) AshNotesTheme.colors.over else AshNotesTheme.colors.ember

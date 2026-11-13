@@ -16,6 +16,9 @@ interface ExpenseDao {
     @Query("SELECT * FROM expenses WHERE id = :id AND deletedAt IS NULL")
     suspend fun getExpenseById(id: String): ExpenseEntity?
 
+    @Query("SELECT * FROM expenses")
+    suspend fun getAllExpensesIncludingDeleted(): List<ExpenseEntity>
+
     @Query("SELECT COALESCE(SUM(amountMinor), 0) FROM expenses WHERE budgetId = :budgetId AND deletedAt IS NULL")
     fun observeTotalSpent(budgetId: String): Flow<Long>
 
@@ -24,6 +27,9 @@ interface ExpenseDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertExpense(expense: ExpenseEntity)
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertExpenses(expenses: List<ExpenseEntity>)
 
     @Update
     suspend fun updateExpense(expense: ExpenseEntity)

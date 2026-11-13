@@ -3,6 +3,7 @@ package com.rayven0421.ashnotes.data.repository
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -23,6 +24,7 @@ class UserPreferencesRepositoryImpl @Inject constructor(
 
     private object PreferencesKeys {
         val NOTE_SORT_OPTION = stringPreferencesKey("note_sort_option")
+        val BIOMETRIC_ENABLED = booleanPreferencesKey("biometric_enabled")
     }
 
     override val noteSortOption: Flow<NoteSortOption> = context.dataStore.data
@@ -38,6 +40,17 @@ class UserPreferencesRepositoryImpl @Inject constructor(
     override suspend fun setNoteSortOption(option: NoteSortOption) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.NOTE_SORT_OPTION] = option.name
+        }
+    }
+
+    override val isBiometricEnabled: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[PreferencesKeys.BIOMETRIC_ENABLED] ?: false
+        }
+
+    override suspend fun setBiometricEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.BIOMETRIC_ENABLED] = enabled
         }
     }
 }

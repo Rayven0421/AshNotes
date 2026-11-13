@@ -6,4 +6,7 @@ import kotlinx.coroutines.flow.Flow
 interface UserPreferencesRepository {
     val noteSortOption: Flow<NoteSortOption>
     suspend fun setNoteSortOption(option: NoteSortOption)
+
+    val isBiometricEnabled: Flow<Boolean>
+    suspend fun setBiometricEnabled(enabled: Boolean)
 }

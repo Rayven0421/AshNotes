@@ -19,8 +19,14 @@ interface BudgetDao {
     @Query("SELECT * FROM budgets WHERE id = :id AND deletedAt IS NULL")
     suspend fun getBudgetById(id: String): BudgetEntity?
 
+    @Query("SELECT * FROM budgets")
+    suspend fun getAllBudgetsIncludingDeleted(): List<BudgetEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertBudget(budget: BudgetEntity)
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertBudgets(budgets: List<BudgetEntity>)
 
     @Update
     suspend fun updateBudget(budget: BudgetEntity)

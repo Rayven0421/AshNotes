@@ -23,8 +23,14 @@ interface NoteDao {
     @Query("SELECT * FROM notes WHERE id = :id AND deletedAt IS NULL")
     suspend fun getNoteById(id: String): NoteEntity?
 
+    @Query("SELECT * FROM notes")
+    suspend fun getAllNotesIncludingDeleted(): List<NoteEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertNote(note: NoteEntity)
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertNotes(notes: List<NoteEntity>)
 
     @Update
     suspend fun updateNote(note: NoteEntity)

@@ -73,4 +73,10 @@ abstract class RepositoryModule {
     abstract fun bindSessionRepository(
         impl: SessionRepositoryImpl
     ): SessionRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindCloudBackupRepository(
+        impl: com.rayven0421.ashnotes.data.repository.CloudBackupRepositoryImpl
+    ): com.rayven0421.ashnotes.domain.repository.CloudBackupRepository
 }

@@ -16,8 +16,14 @@ interface CategoryDao {
     @Query("SELECT * FROM categories WHERE id = :id AND deletedAt IS NULL")
     suspend fun getCategoryById(id: String): CategoryEntity?
 
+    @Query("SELECT * FROM categories")
+    suspend fun getAllCategoriesIncludingDeleted(): List<CategoryEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCategory(category: CategoryEntity)
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertCategories(categories: List<CategoryEntity>)
 
     @Update
     suspend fun updateCategory(category: CategoryEntity)
