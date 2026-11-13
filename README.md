@@ -7,10 +7,10 @@ AshNotes is an offline-first Android application that seamlessly integrates a bl
 ## Executive Summary
 
 - **Offline-First Architecture**: Room Database serves as the single source of truth. All core functions operate locally without network dependency.
-- **Unified Document Model**: Notes are structured as versioned, serializable block-based documents that host interactive text content, live budget widgets, and expense lists.
-- **Precision Financial Calculations**: Monetary values are strictly stored and calculated as integer minor units (`Long`), completely eliminating floating-point rounding errors.
+- **Unified Document Model**: Notes are structured as versioned, serializable block-based documents supporting 12+ block types, live budget widgets, and rich text formatting.
+- **Precision Financial Calculations**: Monetary values are strictly stored and calculated as integer minor units (`Long`) via `BudgetCalculator`, completely eliminating floating-point rounding errors.
 - **Ash Design System**: A dark-themed, low-contrast UI built with Material 3 tokens, tailored typography (Bricolage Grotesque and Instrument Sans), and custom visual components like the signature Budget Meter.
-- **Cloud Synchronization & Security**: Optional synchronization powered by Firebase Authentication and Cloud Firestore with transactional version checks and tombstone deletion handling.
+- **Data Safety & Cloud Sync**: Versioned JSON backup/restore via Storage Access Framework (SAF), soft deletion workflows, and Firebase Authentication & Cloud Firestore integration.
 
 ---
 
@@ -27,61 +27,36 @@ AshNotes adheres to Clean Architecture and MVVM principles, enforcing strict uni
                                   v
 +-------------------------------------------------------------------+
 |                           Domain Layer                            |
-|   Pure Kotlin Models (Document, Block, Money), Repositories,      |
-|   Use Cases (BudgetCalculator, TextBlockOperations)               |
+|   Pure Kotlin Models (Document, Block, Money, Budget),            |
+|   Repositories, Use Cases (BudgetCalculator, ChecklistOperations) |
 +-------------------------------------------------------------------+
                                   ^
                                   |
 +-------------------------------------------------------------------+
 |                            Data Layer                             |
-|   Room Entities & DAOs, Mappers, DataStore, Firebase Remote       |
+|   Room Entities & DAOs, Migrations, Mappers, DataStore,           |
+|   Firebase Auth & Cloud Backup Repositories                       |
 +-------------------------------------------------------------------+
 ```
 
 ### Layer Responsibilities
 
-- **Feature Layer**: Implements Jetpack Compose UI components and ViewModels exposing single `StateFlow<UiState>` models. UI state collection uses `collectAsStateWithLifecycle()`.
-- **Domain Layer**: Pure Kotlin models, repository interfaces, and business logic. Independent of Android framework dependencies, Compose, Room, or Firebase.
-- **Data Layer**: Manages local data persistence with Room DAOs, remote Firebase services, DataStore preferences, and mapping functions.
+- **Feature Layer**: Implements Jetpack Compose UI components and ViewModels exposing single `StateFlow` UI states. UI state collection uses `collectAsStateWithLifecycle()`.
+- **Domain Layer**: Pure Kotlin models (`Document`, `Block`, `Money`, `Budget`), repository interfaces, and pure business logic (`BudgetCalculator`, block operation utilities). Independent of Android framework dependencies.
+- **Data Layer**: Manages local data persistence with Room DAOs (Workspace, Note, Budget, Expense, Category, SyncQueue, SyncMetadata), SQLite migrations, SAF backup export/import, and Firebase integration.
 
 ---
 
-## Key Features
+## Current Implementation Status
 
-### 1. Unified Block & Rich-Text Editor
-- Support for structured block types: Paragraphs, Headings (H1, H2, H3), Bullet Lists, Numbered Lists, Checklists, Quotes, Code Blocks, Tables, Dividers, and Images.
-- Live embedding of dynamic budget widgets (`BudgetBlock`, `ExpenseListBlock`, and `BudgetChartBlock`) directly inside notes.
-- Inline rich-text formatting (Bold, Italic, Underline, Strikethrough, Code, Color, and Links).
-- Debounced autosave mechanism (500–1000ms) with flush on lifecycle pauses and navigation.
-- Full undo and redo history buffer.
+AshNotes has successfully completed foundational and core architectural phases:
 
-### 2. Intelligent Financial & Expense Management
-- Multi-currency support (defaulting to PHP) formatted dynamically via system locale and fraction digits.
-- Expense tracking categorized by custom icons, descriptions, and timestamps.
-- Derived financial computations computed dynamically from expense records:
-  - Spent total sum calculation.
-  - Remaining balance calculation with over-budget support.
-  - Visual pace indicator showing spending velocity relative to elapsed time.
-- Zero-budget handling and over-budget alerting.
-
-### 3. Ash Aesthetic Design System
-- Matte dark visual tokens engineered for high legibility and zero glare:
-  - `ash.base` (`#121116`): App background surface.
-  - `ash.surface` (`#1A1922`): Primary container surfaces and bottom navigation.
-  - `ash.raised` (`#232130`): Dialogs, menus, and focused editor blocks.
-  - `ash.ember` (`#875FFF`): Restrained accent color for focused actions and live meters.
-  - `ash.over` (`#E9795A`): Destructive action and over-budget warning indicator.
-  - `ash.ok` (`#86B89C`): Positive financial indicator.
-- Custom typography pairing: Bricolage Grotesque for titles and Instrument Sans for interface text.
-- Tabular figures (`tnum`) applied across numeric financial readouts for precise vertical column alignment.
-
-### 4. Data Safety & Synchronization
-- Soft deletion model (`deletedAt`) across database entities to prevent accidental data loss.
-- Versioned JSON import and export framework using the Android Storage Access Framework (SAF).
-- Cloud synchronization via Firebase Authentication and Cloud Firestore:
-  - Queue-based background worker (`SyncQueueEntity`) with exponential backoff.
-  - Transactional version validation (`baseVersion` matching) to resolve multi-device edit conflicts safely.
-  - Tombstone deletion propagation.
+- **Phase 1 (Foundation)**: Fully implemented with Jetpack Compose, Material 3 dark theme (`AshNotesTheme`, design tokens), type-safe navigation, bottom bar tab-state preservation, and `UiState` architecture.
+- **Phase 2 (Local Database)**: Fully implemented Room database with versioned schema exports (`schemas/`), 7 entities, DAOs with Flow observation, transaction support, automated workspace creation, and default category seeding.
+- **Phase 3 (Editor Core & Block Model)**: Complete `Document` and `Block` sealed interface model (`Paragraph`, `Heading`, `BulletList`, `NumberedList`, `Checklist`, `Quote`, `Code`, `Divider`, `Table`, `Image`, `Budget`, `ExpenseList`, `BudgetChart`, `UnknownBlock`), paragraph/checklist operations, and test harness (`EditorScreenTest`).
+- **Phase 4 (Budget System & Calculations)**: Robust integer minor-unit `Money` handling, `BudgetCalculator` domain logic (spent, remaining, percent used, over-budget detection), and currency formatting.
+- **Phase 5 (Data Safety & Backup)**: Storage Access Framework (SAF) versioned JSON export and import with duplicate-id handling and relationship preservation.
+- **Phase 6 & Core Repositories**: Implemented `AuthRepositoryImpl`, `CloudBackupRepositoryImpl`, and full repository layer for workspaces, notes, budgets, expenses, and categories.
 
 ---
 
@@ -91,13 +66,13 @@ AshNotes adheres to Clean Architecture and MVVM principles, enforcing strict uni
 - **UI Toolkit**: Jetpack Compose (Compose BOM), Material 3
 - **Architecture**: MVVM, Clean Architecture, Unidirectional Data Flow
 - **Dependency Injection**: Hilt
-- **Database**: Room Database (Schema export enabled, explicit version migrations)
+- **Database**: Room Database (Schema export enabled, explicit version migrations 1->2->3)
 - **Asynchronous Operations**: Kotlin Coroutines, StateFlow, SharedFlow
 - **Serialization**: kotlinx.serialization
 - **Network & Cloud**: Firebase Authentication, Cloud Firestore
 - **Preferences**: Jetpack DataStore
 - **Background Tasks**: WorkManager
-- **Typography**: Compose Google Fonts Provider (Bricolage Grotesque & Instrument Sans)
+- **Testing**: JUnit 4, Turbine, Instrumented Room & Migration Tests (`DaoTest`, `MigrationTest`)
 
 ---
 
@@ -108,18 +83,18 @@ com.rayven0421.ashnotes/
 ├── AshNotesApp.kt             # Application entry point (@HiltAndroidApp)
 ├── MainActivity.kt            # Main activity entry point (@AndroidEntryPoint)
 ├── core/
-│   ├── common/                # UiState, Result, Date/Money utilities, Dispatchers
-│   └── designsystem/          # Ash tokens, Theme, Color, Type, Shape, BudgetMeter
+│   ├── common/                # UiState, Result, Date/Money utilities, BiometricUtils
+│   └── designsystem/          # Ash tokens, Theme, Color, Type, Shape, BudgetMeter, Dialogs
 ├── data/
 │   ├── local/                 # Room database, Entities, DAOs, Migrations
 │   ├── mapper/                # Entity <-> Domain mappers
-│   ├── remote/                # Firebase Auth and Firestore implementations
+│   ├── remote/                # Firebase Auth and Cloud backup implementations
 │   └── repository/            # Data layer repository implementations
 ├── di/                        # Hilt modules (DatabaseModule, RepositoryModule, AuthModule)
 ├── domain/
-│   ├── model/                 # Note, Document, Block, Budget, Expense, Money
+│   ├── model/                 # Note, Document, Block, Budget, Expense, Money, BudgetCalculator
 │   ├── repository/            # Abstract domain interfaces
-│   └── usecase/               # Domain business logic (BudgetCalculator, etc.)
+│   └── usecase/               # Domain business logic & operations
 └── feature/
     ├── authentication/        # Login and registration flows
     ├── budget/                # Budget management and expense entry UI
@@ -167,43 +142,20 @@ com.rayven0421.ashnotes/
 
 ---
 
-## Future Features & Roadmap
+## Roadmap & Future Enhancements
 
-The development of AshNotes is structured across clear operational phases. The following features are planned for upcoming releases:
-
-### Short-Term Enhancements
-- **Advanced Block Types**:
-  - Image block support with local storage caching and responsive rendering.
-  - Markdown document import and export capabilities.
-  - Multi-column grid blocks optimized for tablet and desktop screen layouts.
-- **Full-Text Search & Filtering**:
-  - Full-text search (FTS4/FTS5) in Room across note titles, text blocks, and expense details.
-  - Tagging system with multi-criteria filtering.
-
-### Mid-Term Enhancements
-- **Workspace Sharing & Collaboration**:
-  - Encrypted workspace invite codes for collaborative budgets and shared notes.
-  - Granular user permissions per shared workspace.
-- **Advanced Financial Analytics**:
-  - Historical spending trends over customizable timeframes (weekly, monthly, annual).
-  - Category breakdown visualization charts (`BudgetChartBlock`).
-  - Transaction history export to CSV and PDF formats.
-
-### Long-Term Enhancements
-- **Biometric Security & Encrypted Notes**:
-  - Biometric lock (Fingerprint / Face Unlock) for sensitive notes or budget logs.
-  - Client-side AES-256 encryption for confidential financial records.
-- **Automated Recurring Expenses**:
-  - Scheduled expense generation for recurring subscriptions, utility bills, and fixed costs.
-  - Due date notification alerts.
+- **UI & Feature Integration**: Wiring domain use cases and repository flows directly into feature UI screens for fully interactive notes and budget management.
+- **Advanced Analytics & Charts**: Rich visual breakdown charts (`BudgetChartBlock`) and historical spending trends.
+- **Biometric Security**: Fingerprint / Face Unlock protection for sensitive vaults and confidential notes.
+- **Recurring Expenses**: Automated scheduling for subscriptions and fixed overhead costs.
 
 ---
 
 ## Verification & Quality Assurance
 
-- **Unit Testing**: Comprehensive JVM unit tests covering financial computations (`BudgetCalculatorTest`), money formatting/parsing (`MoneyUtils`), block text operations, and document serialization.
-- **Database Migrations**: Instrumentally verified Room schema migrations ensuring zero data loss.
-- **Accessibility**: Interface components strictly comply with WCAG AA contrast standards, 48dp touch target guidelines, and TalkBack accessibility labels.
+- **Unit Testing**: JVM unit tests covering financial calculations (`BudgetCalculator`), money formatting (`MoneyUtils`), block operations, and document serialization.
+- **Database Migrations**: Instrumentally verified Room schema migrations ensuring zero data loss (`MigrationTest`, `DaoTest`).
+- **Accessibility**: Interface components adhere to WCAG contrast standards, 48dp touch target guidelines, and TalkBack semantics.
 
 ---
 

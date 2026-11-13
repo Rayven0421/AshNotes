@@ -11,9 +11,9 @@
       "type": "SINGLE",
       "filters": [],
       "attributes": [],
-      "versionCode": 1,
-      "versionName": "1.0-staging",
-      "outputFile": "AshNotes-1.0-staging.apk"
+      "versionCode": 2,
+      "versionName": "1.1-staging",
+      "outputFile": "AshNotes-1.1-staging.apk"
     }
   ],
   "elementType": "File",
